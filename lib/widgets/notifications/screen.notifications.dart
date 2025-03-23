@@ -13,6 +13,7 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   late List<FreightNotification> _notifications;
   String _selectedFilter = 'Tous';
+  FreightNotification? _selectedNotification;
 
   @override
   void initState() {
@@ -61,18 +62,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void _handleNotificationTap(FreightNotification notification) {
     _markAsRead(notification.id);
 
-    switch (notification.type) {
-      case NotificationType.quotation:
-        context.pushNamed(QuotationDetailsScreen.name, extra: {
-          QuotationDetailsScreen.notificationKey: notification
-        });
+    // Afficher le popup de détail de notification
+    setState(() {
+      _selectedNotification = notification;
+    });
+  }
 
-        break;
-      case NotificationType.statusChange:
-      case NotificationType.serviceAccepted:
-        Navigator.pushNamed(context, '/service-status-details', arguments: notification.data);
-        break;
-    }
+  void _closeNotificationDetail() {
+    setState(() {
+      _selectedNotification = null;
+    });
   }
 
   @override
@@ -95,22 +94,33 @@ class _NotificationScreenState extends State<NotificationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          _buildFilterSection(),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filteredNotifications.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                return NotificationItem(
-                  notification: _filteredNotifications[index],
-                  onTap: () => _handleNotificationTap(_filteredNotifications[index]),
-                );
-              },
-            ),
+          Column(
+            children: [
+              _buildFilterSection(),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _filteredNotifications.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    return NotificationItem(
+                      notification: _filteredNotifications[index],
+                      onTap: () => _handleNotificationTap(_filteredNotifications[index]),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
+
+          // Popup de détail de notification
+          if (_selectedNotification != null)
+            NotificationDetailPopup(
+              notification: _selectedNotification!,
+              onClose: _closeNotificationDetail,
+            ),
         ],
       ),
     );
@@ -148,26 +158,66 @@ class _NotificationScreenState extends State<NotificationScreen> {
     FreightNotification(
       id: '1',
       title: 'Nouveau devis reçu',
-      message: 'Un nouveau devis est disponible pour votre demande de transport',
+      message: 'Un nouveau devis est disponible pour votre demande de transport de marchandises entre Abidjan et Bouaké.',
       timestamp: DateTime.now().subtract(const Duration(hours: 2)),
       type: NotificationType.quotation,
-      data: {'quotationId': 'Q123'},
+      data: {
+        'quotationId': 'Q123',
+        'companyName': 'Transport Express CI',
+        'pickupLocation': 'Abidjan, Treichville',
+        'destination': 'Bouaké',
+        'amount': '75000'
+      },
     ),
     FreightNotification(
       id: '2',
       title: 'Statut mis à jour',
-      message: 'Votre livraison est en cours de transport',
+      message:
+          'Votre livraison est en cours de transport. Le chauffeur a quitté le point de départ et est en route vers la destination.',
       timestamp: DateTime.now().subtract(const Duration(hours: 5)),
       type: NotificationType.statusChange,
-      data: {'serviceId': 'S456'},
+      data: {
+        'serviceId': 'S456',
+        'newStatus': 'En cours de livraison',
+        'vehicleInfo': 'Camion benne - AH 1234 CI',
+        'driverName': 'Kouadio Jean'
+      },
     ),
     FreightNotification(
       id: '3',
       title: 'Service accepté',
-      message: 'Votre demande de transport a été acceptée',
+      message:
+          'Votre demande de transport a été acceptée par un transporteur. Vos marchandises seront prises en charge à la date convenue.',
       timestamp: DateTime.now().subtract(const Duration(hours: 8)),
       type: NotificationType.serviceAccepted,
-      data: {'serviceId': 'S789'},
+      data: {
+        'serviceId': 'S789',
+        'transporterName': 'Bakary Touré',
+        'deliveryDate': '23/03/2025',
+        'vehicleType': 'Camion frigorifique'
+      },
+    ),
+    FreightNotification(
+      id: '4',
+      title: 'Devis mis à jour',
+      message: 'Le devis pour votre transport de café a été révisé suite à votre demande de modification de poids.',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      type: NotificationType.quotation,
+      data: {
+        'quotationId': 'Q124',
+        'companyName': 'LogiFreight CI',
+        'pickupLocation': 'Daloa',
+        'destination': 'Abidjan, Port',
+        'amount': '120000'
+      },
+    ),
+    FreightNotification(
+      id: '5',
+      title: 'Livraison terminée',
+      message: 'Votre livraison de cacao a été livrée avec succès à destination. Veuillez confirmer la réception.',
+      timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      type: NotificationType.statusChange,
+      data: {'serviceId': 'S457', 'newStatus': 'Livré', 'product': 'Cacao - 500kg', 'deliveryTime': '10:45'},
     ),
   ];
 }

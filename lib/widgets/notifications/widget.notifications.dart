@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:livraix/models/notifications/models.devis.dart';
 import 'package:livraix/models/notifications/models.notifications.dart';
-import 'package:livraix/widgets/notifications/notifications_details/widget.quotation_detail.dart';
 import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.notifications.dart';
@@ -111,252 +108,246 @@ class NotificationItem extends StatelessWidget {
   }
 }
 
-class QuotationHeader extends StatelessWidget {
-  final Quotation quotation;
+class NotificationDetailPopup extends StatelessWidget {
+  final FreightNotification notification;
+  final VoidCallback onClose;
 
-  const QuotationHeader({
+  const NotificationDetailPopup({
     super.key,
-    required this.quotation,
+    required this.notification,
+    required this.onClose,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.network(
-              quotation.companyLogo,
-              width: 80,
-              height: 80,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête de la notification
+              Row(
                 children: [
-                  Text(
-                    quotation.companyName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  _buildNotificationIcon(),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          notification.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _formatTimestamp(notification.timestamp),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(quotation.companyAddress),
-                  Text(quotation.companyEmail),
-                  Text(quotation.companyPhone),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Informations client',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(height: 24),
+
+              // Corps de la notification
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  notification.message,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(quotation.clientName),
-              Text(quotation.clientAddress),
-              Text(quotation.clientEmail),
+              const SizedBox(height: 24),
+
+              // Détails supplémentaires en fonction du type
+              _buildNotificationDetails(),
+              const SizedBox(height: 24),
+
+              // Bouton de fermeture
+              SizedBox(
+                width: double.infinity,
+                child: CustomButton(
+                  text: 'Fermer',
+                  color: AppColors.primary,
+                  textColor: Colors.white,
+                  onPressed: onClose,
+                ),
+              ),
             ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-class QuotationItemsTable extends StatelessWidget {
-  final List<QuotationItem> items;
-
-  const QuotationItemsTable({
-    super.key,
-    required this.items,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Description')),
-          DataColumn(label: Text('Poids')),
-          DataColumn(label: Text('Qté')),
-          DataColumn(label: Text('Prix U.')),
-          DataColumn(label: Text('Total')),
-        ],
-        rows: items.map((item) {
-          return DataRow(cells: [
-            DataCell(Text(item.description)),
-            DataCell(Text('${item.weight} kg')),
-            DataCell(Text(item.quantity.toString())),
-            DataCell(Text('${item.unitPrice} XOF')),
-            DataCell(Text('${item.totalPrice} XOF')),
-          ]);
-        }).toList(),
       ),
     );
   }
-}
 
-class QuotationFooter extends StatelessWidget {
-  final Quotation quotation;
+  Widget _buildNotificationIcon() {
+    IconData iconData;
+    Color iconColor;
 
-  const QuotationFooter({
-    super.key,
-    required this.quotation,
-  });
+    switch (notification.type) {
+      case NotificationType.quotation:
+        iconData = Icons.description_outlined;
+        iconColor = Colors.blue;
+        break;
+      case NotificationType.statusChange:
+        iconData = Icons.local_shipping_outlined;
+        iconColor = Colors.orange;
+        break;
+      case NotificationType.serviceAccepted:
+        iconData = Icons.check_circle_outline;
+        iconColor = Colors.green;
+        break;
+    }
 
-  @override
-  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: iconColor.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(iconData, color: iconColor, size: 28),
+    );
+  }
+
+  Widget _buildNotificationDetails() {
+    switch (notification.type) {
+      case NotificationType.quotation:
+        return _buildQuotationDetails();
+      case NotificationType.statusChange:
+        return _buildStatusChangeDetails();
+      case NotificationType.serviceAccepted:
+        return _buildServiceAcceptedDetails();
+    }
+  }
+
+  Widget _buildQuotationDetails() {
+    final quotationData = notification.data;
+
     return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              _buildRouteInfo(),
-              const Divider(height: 24),
-              _buildTotalAmount(),
-              const Divider(height: 24),
-              _buildValidityInfo(),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        _buildSignatureSection(),
-      ],
-    );
-  }
-
-  Widget _buildRouteInfo() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Lieu de récupération',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(quotation.pickupLocation),
-            ],
-          ),
-        ),
-        const Icon(Icons.arrow_forward),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                'Destination',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(quotation.destination),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTotalAmount() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Montant total',
+          'Détails du devis',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(
-          '${quotation.totalAmount} XOF',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const SizedBox(height: 12),
+        _buildDetailRow('Entreprise', quotationData['companyName'] ?? 'Non spécifié'),
+        _buildDetailRow('De', quotationData['pickupLocation'] ?? 'Non spécifié'),
+        _buildDetailRow('À', quotationData['destination'] ?? 'Non spécifié'),
+        _buildDetailRow('Montant', '${quotationData['amount'] ?? '0'} XOF'),
       ],
     );
   }
 
-  Widget _buildValidityInfo() {
-    return Text(
-      'Valide jusqu\'au ${DateFormat('dd/MM/yyyy').format(quotation.validUntil)}',
-      style: const TextStyle(
-        fontStyle: FontStyle.italic,
+  Widget _buildStatusChangeDetails() {
+    final statusData = notification.data;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Mise à jour du statut',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildDetailRow('Service', statusData['serviceId'] ?? 'Non spécifié'),
+        _buildDetailRow('Nouveau statut', statusData['newStatus'] ?? 'Non spécifié'),
+        _buildDetailRow('Mise à jour le', _formatTimestamp(notification.timestamp)),
+      ],
+    );
+  }
+
+  Widget _buildServiceAcceptedDetails() {
+    final serviceData = notification.data;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Service accepté',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildDetailRow('Service', serviceData['serviceId'] ?? 'Non spécifié'),
+        _buildDetailRow('Transporteur', serviceData['transporterName'] ?? 'Non spécifié'),
+        _buildDetailRow('Date de livraison', serviceData['deliveryDate'] ?? 'Non spécifié'),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSignatureSection() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              Container(
-                height: 1,
-                color: Colors.grey[300],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Signature client',
-                style: TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 32),
-        Expanded(
-          child: Column(
-            children: [
-              Container(
-                height: 1,
-                color: Colors.grey[300],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Signature entreprise',
-                style: TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return DateFormat('dd/MM/yyyy').format(timestamp);
+    } else if (difference.inHours > 0) {
+      return 'Il y a ${difference.inHours}h';
+    } else if (difference.inMinutes > 0) {
+      return 'Il y a ${difference.inMinutes}min';
+    } else {
+      return 'À l\'instant';
+    }
   }
 }

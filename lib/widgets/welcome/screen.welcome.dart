@@ -50,9 +50,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 color: AppColors.primary,
                 textColor: Colors.white,
                 onPressed: () {
-                  // context.pushNamed(LoginScreen.name);
+                  context.pushNamed(LoginScreen.name);
                   // context.pushNamed(ContractDetailsScreen.name);
-                  context.pushNamed(HomeScreen.name);
+                  // context.pushNamed(HomeScreen.name);
                 },
               ),
               const SizedBox(height: 16),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:go_router/go_router.dart';
-import 'package:livraix/utils/app.router.dart';
+import 'package:flutter/services.dart';
 import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.dashboard.dart';
@@ -14,7 +13,7 @@ class DashboardHeader extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
       child: Text(
-        'Gains',
+        'Tableau de bord',
         style: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
@@ -368,6 +367,334 @@ class SectionHeader extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+
+class BalanceBanner extends StatelessWidget {
+  final double balance;
+  final VoidCallback onWithdraw;
+
+  const BalanceBanner({
+    super.key,
+    required this.balance,
+    required this.onWithdraw,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10, bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF074F24),
+            const Color(0xFF074F24).withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Solde disponible',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontFamily: 'Gilroy',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${balance.toStringAsFixed(0)} XOF',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Gilroy',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: onWithdraw,
+            style: ElevatedButton.styleFrom(
+              foregroundColor: const Color(0xFF074F24),
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Retirer',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Gilroy',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class WithdrawDialog extends StatefulWidget {
+  final double currentBalance;
+  final String defaultPhoneNumber;
+
+  const WithdrawDialog({
+    super.key,
+    required this.currentBalance,
+    required this.defaultPhoneNumber,
+  });
+
+  @override
+  State<WithdrawDialog> createState() => _WithdrawDialogState();
+}
+
+class _WithdrawDialogState extends State<WithdrawDialog> {
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  String? _amountError;
+  String? _phoneError;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.text = widget.defaultPhoneNumber;
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _validateWithdraw() {
+    bool isValid = true;
+
+    // Vérifier le montant
+    if (_amountController.text.isEmpty) {
+      setState(() {
+        _amountError = 'Veuillez saisir un montant';
+      });
+      isValid = false;
+    } else {
+      try {
+        final amount = double.parse(_amountController.text);
+        if (amount <= 0) {
+          setState(() {
+            _amountError = 'Le montant doit être supérieur à 0';
+          });
+          isValid = false;
+        } else if (amount > widget.currentBalance) {
+          setState(() {
+            _amountError = 'Solde insuffisant';
+          });
+          isValid = false;
+        } else {
+          setState(() {
+            _amountError = null;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _amountError = 'Montant invalide';
+        });
+        isValid = false;
+      }
+    }
+
+    // Vérifier le numéro de téléphone
+    if (_phoneController.text.isEmpty) {
+      setState(() {
+        _phoneError = 'Veuillez saisir un numéro de téléphone';
+      });
+      isValid = false;
+    } else if (_phoneController.text.length < 10) {
+      setState(() {
+        _phoneError = 'Numéro de téléphone invalide';
+      });
+      isValid = false;
+    } else {
+      setState(() {
+        _phoneError = null;
+      });
+    }
+
+    // Si tout est valide, procéder au retrait
+    if (isValid) {
+      Navigator.of(context).pop({
+        'amount': double.parse(_amountController.text),
+        'phone': _phoneController.text,
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Retrait de fonds',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Gilroy',
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Veuillez saisir le montant et le numéro de téléphone pour le retrait',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontFamily: 'Gilroy',
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Montant
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Montant à retirer',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Gilroy',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'Ex: 5000',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    suffixText: 'XOF',
+                    errorText: _amountError,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Numéro de téléphone
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Numéro de téléphone',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Gilroy',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: 'Ex: 0701234567',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixText: '+225 ',
+                    errorText: _phoneError,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Boutons d'action
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Color(0xFF074F24)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Annuler',
+                      style: TextStyle(
+                        color: Color(0xFF074F24),
+                        fontFamily: 'Gilroy',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _validateWithdraw,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF074F24),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Confirmer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Gilroy',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

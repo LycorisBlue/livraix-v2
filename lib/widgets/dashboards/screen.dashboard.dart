@@ -15,6 +15,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<double> weeklyData = [10000, 12500, 22500, 45000, 12500, 5000, 22500];
   final List<String> weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
+  // Solde actuel (mock data)
+  double _currentBalance = 158520;
+  String _userPhoneNumber = '0706210225'; // Numéro par défaut
+
+  void _showWithdrawDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => WithdrawDialog(
+        currentBalance: _currentBalance,
+        defaultPhoneNumber: _userPhoneNumber,
+      ),
+    ).then((result) {
+      if (result != null) {
+        // Traiter le retrait
+        final amount = result['amount'] as double;
+        final phone = result['phone'] as String;
+
+        // Simuler un retrait (dans une app réelle, appel API ici)
+        setState(() {
+          _currentBalance -= amount;
+          _userPhoneNumber = phone; // Mettre à jour le numéro si changé
+        });
+
+        // Afficher confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Retrait de ${amount.toStringAsFixed(0)} XOF effectué avec succès'),
+            backgroundColor: const Color(0xFF074F24),
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +61,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const DashboardHeader(),
-                const SizedBox(height: 20),
+
+                // Nouvelle bannière de solde
+                BalanceBanner(
+                  balance: _currentBalance,
+                  onWithdraw: _showWithdrawDialog,
+                ),
+
                 // Stats cards
                 const Row(
                   children: [
@@ -78,3 +118,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+

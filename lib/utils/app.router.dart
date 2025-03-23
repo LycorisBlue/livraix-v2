@@ -14,7 +14,6 @@ import 'package:livraix/widgets/contrat/widget.contract_details.dart';
 import 'package:livraix/widgets/dashboards/widget.dashboard.dart';
 import 'package:livraix/widgets/history/widget.history.dart';
 import 'package:livraix/widgets/home/widget.home.dart';
-import 'package:livraix/widgets/notifications/notifications_details/widget.quotation_detail.dart';
 import 'package:livraix/widgets/notifications/widget.notifications.dart';
 import 'package:livraix/widgets/welcome/widget.welcome.dart';
 import 'package:livraix/widgets/splash/widget.splash.dart';
@@ -101,38 +100,6 @@ class AppRouter {
                         builder: (BuildContext context, GoRouterState state) {
                           return const NotificationScreen();
                         }),
-                    GoRoute(
-                      path: QuotationDetailsScreen.path,
-                      name: QuotationDetailsScreen.name,
-                      builder: (context, state) {
-                        if (state.extra == null) {
-                          return const Scaffold(
-                            body: Center(child: Text('No quotation data found')),
-                          );
-                        }
-                        final extra = state.extra as Map<String, dynamic>;
-                        final notification = extra[QuotationDetailsScreen.notificationKey] as FreightNotification;
-                        final quotationData = notification.data;
-                        // Fetch or construct Quotation object using notification data
-                        final quotation = Quotation(
-                          // Map your quotation data here
-                          companyName: quotationData['companyName'],
-                          id: '1',
-                          companyLogo: 'Logo',
-                          companyAddress: 'Marcory',
-                          companyEmail: 'contact@innov-tech-corp.com',
-                          companyPhone: '0706210225', clientName: 'Arnaud',
-                          clientAddress: 'Grand-Bassam',
-                          clientEmail: 'client@gmail.com',
-                          pickupLocation: 'Abidjan',
-                          destination: 'Bouake',
-                          items: [],
-                          totalAmount: 500000, validUntil: DateTime(2025),
-                          // ... other fields
-                        );
-                        return QuotationDetailsScreen(quotation: quotation);
-                      },
-                    ),
                   ],
                 ),
               ],

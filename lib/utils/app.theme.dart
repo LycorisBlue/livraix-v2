@@ -62,6 +62,7 @@ class AppThemes {
       useMaterial3: true,
       fontFamily: 'Gilroy',
       inputDecorationTheme: InputDecorationTheme(
+        prefixStyle: const TextStyle(color: Color(0xFF32343E)),
         focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: greenPalette.normalActive)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15.0),
