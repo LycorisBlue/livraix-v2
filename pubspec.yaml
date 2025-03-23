@@ -1,0 +1,128 @@
+name: livraix
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Assets
+  flutter_localizations:
+    sdk: flutter
+  flutter_timezone:
+  cupertino_icons:
+  equatable:
+  go_router:
+  timezone:
+  intl:
+  # Widgets
+  sliver_tools:
+  # Services
+  flutter_local_notifications:
+  permission_handler:
+  path_provider:
+  hive_flutter:
+  hive_generator:
+  flutter_bloc:
+  hive:
+  bloc:
+  fl_chart:
+  shared_preferences:
+  carousel_slider:
+  shimmer:
+  image_picker:
+  fluttertoast:
+  floating_bottom_bar:
+  flutter_asset_generator:
+  flutter_animate:
+  cached_network_image:
+  skeletonizer:
+  lottie:
+  responsive_navigation_bar:
+  google_nav_bar:
+  flutter_map: ^8.1.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Assets
+  flutter_launcher_icons:
+  flutter_native_splash:
+  flutter_lints:
+  build_runner:
+  flutter_gen_runner:
+  build:
+
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#000000"
+  image: assets/images/livraix_light_icon.png
+  ios: true
+  android: true
+  web: true
+  image_dark: assets/images/livraix_dark_icon.png
+  android_12:
+    color: "#ffffff"
+    color_dark: "#000000"
+    image: assets/images/livraix_light_icon.png
+    image_dark: assets/images/livraix_dark_icon.png
+
+flutter_launcher_icons:
+  ios: true
+  remove_alpha_ios: true
+  android: "ic_launcher"
+  image_path_ios: assets/images/livraix_light_icon.png
+  image_path_android: assets/images/livraix_light_icon.png
+
+flutter_gen:
+  output: lib/assets/gen/
+  line_length: 80
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/animations/
+  fonts:
+    - family: Gilroy
+      fonts:
+        - asset: assets/fonts/Gilroy-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Gilroy-UltraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Gilroy-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Gilroy-Medium.ttf
+          weight: 400
+        - asset: assets/fonts/Gilroy-Regular.ttf
+          weight: 500
+        - asset: assets/fonts/Gilroy-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Gilroy-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Gilroy-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Gilroy-Black.ttf
+          weight: 900
+        - asset: assets/fonts/Gilroy-Heavy.ttf

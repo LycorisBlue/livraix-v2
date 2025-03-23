@@ -1,0 +1,2 @@
+/Users/macairm1/Desktop/WORKSPACE/freelance/livraix/android/app/.cxx/RelWithDebInfo/4y441h3r/x86/CMakeFiles/edit_cache.dir
+/Users/macairm1/Desktop/WORKSPACE/freelance/livraix/android/app/.cxx/RelWithDebInfo/4y441h3r/x86/CMakeFiles/rebuild_cache.dir
