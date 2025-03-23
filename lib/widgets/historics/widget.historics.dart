@@ -1,2 +1,0 @@
-
-part 'screen.historics.dart';
