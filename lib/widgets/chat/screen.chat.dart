@@ -11,13 +11,8 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<ChatMessage> _messages = [];
-  final ChatbotService _chatbotService = ChatbotService();
-  final ChatStorageService _storageService = ChatStorageService();
-  final ScrollController _scrollController = ScrollController();
 
   bool _isLoading = true;
-  UserDetails? _userDetails;
   List<ChatContact> _contacts = []; // Liste vide des contacts
 
   @override
@@ -29,14 +24,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadData() async {
     try {
       // Chargement des données utilisateur
-      final userDetails = await GeneralManagerDB.getUserDetails();
 
       // Dans une application réelle, vous chargeriez les conversations depuis une API
       await Future.delayed(const Duration(milliseconds: 800));
 
       // Aucune conversation n'est disponible à ce stade
       setState(() {
-        _userDetails = userDetails;
         _contacts = []; // Liste vide
         _isLoading = false;
       });
