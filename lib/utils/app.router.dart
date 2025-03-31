@@ -12,6 +12,7 @@ import 'package:livraix/widgets/bottomNavBar/widget.bottom_nav_bar.dart';
 import 'package:livraix/widgets/chat/widget.chat.dart';
 import 'package:livraix/widgets/contrat/widget.contract_details.dart';
 import 'package:livraix/widgets/dashboards/widget.dashboard.dart';
+import 'package:livraix/widgets/email_verification/widget.email_verification.dart';
 import 'package:livraix/widgets/history/widget.history.dart';
 import 'package:livraix/widgets/home/widget.home.dart';
 import 'package:livraix/widgets/notifications/widget.notifications.dart';
@@ -34,6 +35,15 @@ class AppRouter {
           name: WelcomeScreen.name,
           builder: (BuildContext context, GoRouterState state) {
             return const WelcomeScreen();
+          },
+        ),
+        GoRoute(
+          path: EmailVerificationScreen.path,
+          name: EmailVerificationScreen.name,
+          builder: (BuildContext context, GoRouterState state) {
+            // Récupérer l'email depuis les paramètres de l'état de la route
+            final email = state.extra as String? ?? '';
+            return EmailVerificationScreen(email: email);
           },
         ),
         GoRoute(

@@ -39,86 +39,89 @@ class _CustomerProfileState extends State<CustomerPersonalInfoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.arrow_back, color: Colors.black),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Mes informations personnelles',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
             : _userDetails == null
-            ? const Center(
-            child: Text('Aucune information utilisateur disponible'))
-            : Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              ProfileHeader(
-                title: 'Info personnel',
-                actionText: 'MODIFIER',
-                onActionPressed: () {  },
-              ),
-              const SizedBox(height: 24),
-              // Si vous avez un logo, vous pouvez l'utiliser ici
-              const ProfileAvatar(
-                //imageUrl: _userDetails?.profile.logo,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '${_userDetails?.profile.prenom} ${_userDetails?.profile.nom}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 32),
-              ProfileField(
-                label: 'NOM COMPLET',
-                value:
-                '${_userDetails?.profile.prenom} ${_userDetails?.profile.nom}',
-                icon: Icons.person_outline,
-              ),
-              const SizedBox(height: 16),
-              ProfileField(
-                label: 'EMAIL',
-                value: _userDetails?.email ?? '',
-                icon: Icons.mail_outline,
-              ),
-              const SizedBox(height: 16),
-              ProfileField(
-                label: 'CONTACT',
-                value: _userDetails?.profile.telephone ?? '',
-                icon: Icons.phone_outlined,
-              ),
-              const SizedBox(height: 16),
-              ProfileField(
-                label: 'ADRESSE',
-                value: _userDetails?.profile.addresse ?? '',
-                icon: Icons.location_on_outlined,
-              ),
-            ],
-          ),
-        ),
-      ) ,
+                ? const Center(child: Text('Aucune information utilisateur disponible'))
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        ProfileHeader(
+                          title: 'Info personnel',
+                          actionText: 'MODIFIER',
+                          onActionPressed: () {
+                            // Action pour modifier les informations personnelles
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        const ProfileAvatar(
+                            //imageUrl: _userDetails?.profile.logo,
+                            ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '${_userDetails?.profile.prenom} ${_userDetails?.profile.nom}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ProfileField(
+                          label: 'NOM COMPLET',
+                          value: '${_userDetails?.profile.prenom} ${_userDetails?.profile.nom}',
+                          icon: Icons.person_outline,
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileField(
+                          label: 'EMAIL',
+                          value: _userDetails?.email ?? '',
+                          icon: Icons.mail_outline,
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileField(
+                          label: 'CONTACT',
+                          value: _userDetails?.profile.telephone ?? 'Non renseigné',
+                          icon: Icons.phone_outlined,
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileField(
+                          label: 'ADRESSE',
+                          value: _userDetails?.profile.addresse.isNotEmpty ?? false
+                              ? _userDetails!.profile.addresse
+                              : 'Non renseignée',
+                          icon: Icons.location_on_outlined,
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileField(
+                          label: 'RÔLE',
+                          value: _userDetails?.roles.isNotEmpty ?? false ? _formatRole(_userDetails!.roles[0]) : 'Utilisateur',
+                          icon: Icons.work_outline,
+                        ),
+                        const SizedBox(height: 16),
+                        ProfileField(
+                          label: 'STATUT DU COMPTE',
+                          value: _userDetails?.status ?? false ? 'Actif' : 'Inactif',
+                          icon: Icons.verified_user_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+      ),
     );
+  }
+
+  String _formatRole(String role) {
+    switch (role.toUpperCase()) {
+      case 'TRANSPORTEUR':
+        return 'Transporteur';
+      case 'ENTREPRISE':
+        return 'Entreprise';
+      case 'ADMIN':
+        return 'Administrateur';
+      default:
+        return role;
+    }
   }
 }

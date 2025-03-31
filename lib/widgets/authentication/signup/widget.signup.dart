@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:livraix/repository/auth.service.dart';
 import 'package:livraix/widgets/authentication/login/widget.login.dart';
+import 'package:livraix/widgets/email_verification/widget.email_verification.dart';
 import 'package:livraix/widgets/widgets.dart';
 
-part 'screen.signup.dart';
+import '../forgot_password/widget.forgot_password.dart';
+// Importer le service d'authentification
 
+part 'screen.signup.dart';
 
 class CustomRadioButton extends StatelessWidget {
   final String text;
@@ -60,3 +64,5 @@ class CustomRadioButton extends StatelessWidget {
     );
   }
 }
+
+// SignupScreen reste dans screen.signup.dart

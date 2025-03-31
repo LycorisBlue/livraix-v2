@@ -12,41 +12,29 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedFilter = 'Tous';
+  bool _isLoading = true;
+  List<DeliveryHistory> _deliveries = [];
 
-  final List<DeliveryHistory> _deliveries = [
-    DeliveryHistory(
-      id: 'H45786545215',
-      product: 'Cacao',
-      from: 'Treichville, Abidjan',
-      to: 'Abolsso',
-      status: 'En attente',
-    ),
-    DeliveryHistory(
-      id: 'H45786545215',
-      product: 'Cacao',
-      from: 'Treichville, Abidjan',
-      to: 'Abolsso',
-      status: 'Accepté',
-    ),
-    DeliveryHistory(
-      id: 'H45786545215',
-      product: 'Noix de cajou',
-      from: 'Dabou',
-      to: 'Abolsso',
-      status: 'Refusé',
-    ),
-    DeliveryHistory(
-      id: 'H45786545215',
-      product: 'Café',
-      from: 'Dabakala',
-      to: 'Abolsso',
-      status: 'Accepté',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  List<DeliveryHistory> get filteredDeliveries {
-    if (_selectedFilter == 'Tous') return _deliveries;
-    return _deliveries.where((d) => d.status == _selectedFilter).toList();
+  Future<void> _loadData() async {
+    // Simuler le chargement des données
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Dans une application réelle, vous chargeriez les données depuis une API
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    setState(() {
+      // Liste vide car aucune donnée n'est disponible
+      _deliveries = [];
+      _isLoading = false;
+    });
   }
 
   @override
@@ -73,17 +61,107 @@ class _HistoryScreenState extends State<HistoryScreen> {
               setState(() => _selectedFilter = filter);
             },
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: filteredDeliveries.length,
-              itemBuilder: (context, index) {
-                final delivery = filteredDeliveries[index];
-                return GestureDetector( onTap: () => context.pushNamed(ContractDetailsScreen.name),child: HistoryItem(delivery: delivery));
-              },
-            ),
-          ),
+          _isLoading
+              ? const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF074F24)),
+                  ),
+                )
+              : _deliveries.isEmpty
+                  ? _buildEmptyState()
+                  : Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: _deliveries.length,
+                        itemBuilder: (context, index) {
+                          final delivery = _deliveries[index];
+                          return GestureDetector(
+                            onTap: () => context.pushNamed(ContractDetailsScreen.name),
+                            child: HistoryItem(delivery: delivery),
+                          );
+                        },
+                      ),
+                    ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Expanded(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icône illustrative
+              Icon(
+                Icons.history_outlined,
+                size: 80,
+                color: Colors.grey[300],
+              ),
+              const SizedBox(height: 24),
+              // Titre de l'état vide
+              Text(
+                'Aucun historique disponible',
+                style: TextStyle(
+                  color: Colors.grey[800],
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Description
+              Text(
+                'Vos livraisons terminées apparaîtront ici',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Information supplémentaire
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF074F24).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Acceptez des commandes sur la page d\'accueil pour commencer à construire votre historique',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF074F24),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              // Bouton pour rafraîchir (optionnel)
+              const SizedBox(height: 24),
+              TextButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh, color: Color(0xFF074F24)),
+                label: const Text(
+                  'Rafraîchir',
+                  style: TextStyle(
+                    color: Color(0xFF074F24),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  backgroundColor: const Color(0xFF074F24).withOpacity(0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

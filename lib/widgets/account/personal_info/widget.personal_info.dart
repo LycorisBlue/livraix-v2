@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/models/user_cnx_details.dart';
+import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.person_info.dart';
 

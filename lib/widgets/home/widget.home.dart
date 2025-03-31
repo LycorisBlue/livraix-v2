@@ -1,26 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
+import 'package:livraix/database/app.generalmanager.dart';
+import 'package:livraix/models/user_cnx_details.dart';
 import 'package:livraix/widgets/notifications/widget.notifications.dart';
 import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.home.dart';
 
-class DriverProfileHeader extends StatelessWidget {
-  final String driverName;
-  final String driverCode;
+// Cette classe se trouve normalement dans le fichier widget.home.dart
+
+class DriverProfileHeader extends StatefulWidget {
   final String location;
   final bool isAvailable;
-  final String? profileImageUrl;
 
   const DriverProfileHeader({
     super.key,
-    required this.driverName,
-    required this.driverCode,
     required this.location,
     required this.isAvailable,
-    this.profileImageUrl,
   });
+
+  @override
+  State<DriverProfileHeader> createState() => _DriverProfileHeaderState();
+}
+
+class _DriverProfileHeaderState extends State<DriverProfileHeader> {
+  UserDetails? _userDetails;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserDetails();
+  }
+
+  Future<void> _loadUserDetails() async {
+    try {
+      final userDetails = await GeneralManagerDB.getUserDetails();
+      if (mounted) {
+        setState(() {
+          _userDetails = userDetails;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Erreur lors du chargement des données utilisateur: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getDriverName() {
+    if (_userDetails == null) {
+      return 'Transporteur';
+    }
+
+    final nom = _userDetails!.profile.nom;
+    final prenom = _userDetails!.profile.prenom;
+
+    if (nom.isEmpty && prenom.isEmpty) {
+      return _userDetails!.email;
+    }
+
+    return "$prenom $nom";
+  }
+
+  String _getDriverCode() {
+    if (_userDetails == null || _userDetails!.id == null) {
+      return '';
+    }
+
+    // Générer un code à partir de l'ID (utiliser les 6 premiers caractères)
+    final id = _userDetails!.id!;
+    if (id.length >= 6) {
+      return 'TRS${id.substring(0, 4).toUpperCase()}';
+    }
+
+    return 'TRS${id.toUpperCase()}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +106,7 @@ class DriverProfileHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    location,
+                    widget.location,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -74,14 +134,12 @@ class DriverProfileHeader extends StatelessWidget {
               CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.white.withOpacity(0.9),
-                backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl!) : null,
-                child: profileImageUrl == null
-                    ? const Icon(
-                        CupertinoIcons.person_fill,
-                        color: Color(0xFF074F24),
-                        size: 30,
-                      )
-                    : null,
+                backgroundImage: null,
+                child: const Icon(
+                  CupertinoIcons.person_fill,
+                  color: Color(0xFF074F24),
+                  size: 30,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -89,7 +147,7 @@ class DriverProfileHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      driverName,
+                      _isLoading ? 'Chargement...' : _getDriverName(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -99,7 +157,7 @@ class DriverProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      driverCode,
+                      _isLoading ? '' : _getDriverCode(),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 14,
@@ -112,13 +170,13 @@ class DriverProfileHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isAvailable ? Colors.white.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                  color: widget.isAvailable ? Colors.white.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  isAvailable ? 'DISPONIBLE' : 'INDISPONIBLE',
+                  widget.isAvailable ? 'DISPONIBLE' : 'INDISPONIBLE',
                   style: TextStyle(
-                    color: isAvailable ? Colors.white : Colors.grey[400],
+                    color: widget.isAvailable ? Colors.white : Colors.grey[400],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Gilroy',
@@ -132,7 +190,6 @@ class DriverProfileHeader extends StatelessWidget {
     );
   }
 }
-
 class DeliveryRouteItem extends StatelessWidget {
   final String label;
   final String location;

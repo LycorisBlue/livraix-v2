@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/models/chat/models.chat_message.dart';
+import 'package:livraix/models/user_cnx_details.dart';
 import 'package:livraix/repository/services/services.chat_storage.dart';
 import 'package:livraix/repository/services/services.chst_message.dart';
+import 'package:livraix/widgets/home/widget.home.dart';
+import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.chat.dart';
 

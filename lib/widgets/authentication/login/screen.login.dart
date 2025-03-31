@@ -14,7 +14,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String _errorMessage = '';
 
   @override
   void dispose() {
@@ -23,12 +26,42 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Implement login API integration
-      print('Login submitted');
-      print('Email: ${_emailController.text}');
-      context.pushNamed(HomeScreen.name);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+
+      try {
+        final result = await _authService.login(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result['success']) {
+          // Sauvegarde de la dernière route
+          await GeneralManagerDB.saveLastRoute(HomeScreen.path);
+
+          // Navigation vers l'écran d'accueil
+          if (mounted) {
+            context.pushNamed(HomeScreen.name);
+          }
+        } else {
+          setState(() {
+            _errorMessage = result['message'];
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Une erreur s\'est produite: ${e.toString()}';
+        });
+      }
     }
   }
 
@@ -53,112 +86,144 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const AuthHeader(
-              title: 'Se connecter',
-              subtitle: 'Connectez vous à votre compte',
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 30),
-                    _buildTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hintText: 'exemple@email.com',
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Veuillez entrer votre email';
-                        }
-
-                        // Basic email regex pattern
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        if (!emailRegex.hasMatch(value!)) {
-                          return 'Veuillez entrer un email valide';
-                        }
-
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _passwordController,
-                      label: 'Mot de passe',
-                      hintText: '••••••••••',
-                      obscureText: _obscurePassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      validator: (value) => value?.isEmpty ?? true ? 'Veuillez entrer votre mot de passe' : null,
-                    ),
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          context.pushNamed(ForgotPasswordScreen.name);
-                        },
-                        child: Text(
-                          'Mot de passe oublié ?',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    CustomButton(
-                      text: 'Se connecter',
-                      color: AppColors.primary,
-                      textColor: Colors.white,
-                      onPressed: _login,
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const AuthHeader(
+                  title: 'Se connecter',
+                  subtitle: 'Connectez vous à votre compte',
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Je suis nouveau ? ',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            context.pushNamed(SignupScreen.name);
+                        const SizedBox(height: 30),
+                        _buildTextField(
+                          controller: _emailController,
+                          label: 'Email',
+                          hintText: 'exemple@email.com',
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Veuillez entrer votre email';
+                            }
+
+                            // Basic email regex pattern
+                            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                            if (!emailRegex.hasMatch(value!)) {
+                              return 'Veuillez entrer un email valide';
+                            }
+
+                            return null;
                           },
-                          child: Text(
-                            'S\'inscrire',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildTextField(
+                          controller: _passwordController,
+                          label: 'Mot de passe',
+                          hintText: '••••••••••',
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          validator: (value) => value?.isEmpty ?? true ? 'Veuillez entrer votre mot de passe' : null,
+                        ),
+
+                        // Message d'erreur
+                        if (_errorMessage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(
+                              _errorMessage,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              context.pushNamed(ForgotPasswordScreen.name);
+                            },
+                            child: Text(
+                              'Mot de passe oublié ?',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 30),
+                        CustomButton(
+                          text: 'Se connecter',
+                          color: AppColors.primary,
+                          textColor: Colors.white,
+                          onPressed: _isLoading
+                              ? () {}
+                              : () {
+                                  _login();
+                                },
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Je suis nouveau ? ',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.pushNamed(SignupScreen.name);
+                              },
+                              child: Text(
+                                'S\'inscrire',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Indicateur de chargement
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF074F24),
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

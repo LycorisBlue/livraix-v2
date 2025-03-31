@@ -14,11 +14,35 @@ class _NotificationScreenState extends State<NotificationScreen> {
   late List<FreightNotification> _notifications;
   String _selectedFilter = 'Tous';
   FreightNotification? _selectedNotification;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _notifications = _mockNotifications;
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Simuler un délai de chargement
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // Aucune notification n'est disponible
+      setState(() {
+        _notifications = [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Erreur lors du chargement des notifications: $e');
+      setState(() {
+        _notifications = [];
+        _isLoading = false;
+      });
+    }
   }
 
   List<FreightNotification> get _filteredNotifications {
@@ -38,33 +62,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void _handleFilterChange(String filter) {
     setState(() {
       _selectedFilter = filter;
-    });
-  }
-
-  void _markAsRead(String id) {
-    setState(() {
-      final index = _notifications.indexWhere((n) => n.id == id);
-      if (index != -1) {
-        final notification = _notifications[index];
-        _notifications[index] = FreightNotification(
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          timestamp: notification.timestamp,
-          type: notification.type,
-          isRead: true,
-          data: notification.data,
-        );
-      }
-    });
-  }
-
-  void _handleNotificationTap(FreightNotification notification) {
-    _markAsRead(notification.id);
-
-    // Afficher le popup de détail de notification
-    setState(() {
-      _selectedNotification = notification;
     });
   }
 
@@ -93,25 +90,40 @@ class _NotificationScreenState extends State<NotificationScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          // Bouton de rafraîchissement
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.primary),
+            onPressed: _loadNotifications,
+          ),
+        ],
       ),
       body: Stack(
         children: [
           Column(
             children: [
               _buildFilterSection(),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _filteredNotifications.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    return NotificationItem(
-                      notification: _filteredNotifications[index],
-                      onTap: () => _handleNotificationTap(_filteredNotifications[index]),
-                    );
-                  },
-                ),
-              ),
+              _isLoading
+                  ? const Expanded(
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      ),
+                    )
+                  : _notifications.isEmpty
+                      ? _buildEmptyState()
+                      : Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredNotifications.length,
+                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              return NotificationItem(
+                                notification: _filteredNotifications[index],
+                                onTap: () {},
+                              );
+                            },
+                          ),
+                        ),
             ],
           ),
 
@@ -153,73 +165,165 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // Mock data for demonstration
-  static final List<FreightNotification> _mockNotifications = [
-    FreightNotification(
-      id: '1',
-      title: 'Nouveau devis reçu',
-      message: 'Un nouveau devis est disponible pour votre demande de transport de marchandises entre Abidjan et Bouaké.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      type: NotificationType.quotation,
-      data: {
-        'quotationId': 'Q123',
-        'companyName': 'Transport Express CI',
-        'pickupLocation': 'Abidjan, Treichville',
-        'destination': 'Bouaké',
-        'amount': '75000'
-      },
-    ),
-    FreightNotification(
-      id: '2',
-      title: 'Statut mis à jour',
-      message:
-          'Votre livraison est en cours de transport. Le chauffeur a quitté le point de départ et est en route vers la destination.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-      type: NotificationType.statusChange,
-      data: {
-        'serviceId': 'S456',
-        'newStatus': 'En cours de livraison',
-        'vehicleInfo': 'Camion benne - AH 1234 CI',
-        'driverName': 'Kouadio Jean'
-      },
-    ),
-    FreightNotification(
-      id: '3',
-      title: 'Service accepté',
-      message:
-          'Votre demande de transport a été acceptée par un transporteur. Vos marchandises seront prises en charge à la date convenue.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 8)),
-      type: NotificationType.serviceAccepted,
-      data: {
-        'serviceId': 'S789',
-        'transporterName': 'Bakary Touré',
-        'deliveryDate': '23/03/2025',
-        'vehicleType': 'Camion frigorifique'
-      },
-    ),
-    FreightNotification(
-      id: '4',
-      title: 'Devis mis à jour',
-      message: 'Le devis pour votre transport de café a été révisé suite à votre demande de modification de poids.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      type: NotificationType.quotation,
-      data: {
-        'quotationId': 'Q124',
-        'companyName': 'LogiFreight CI',
-        'pickupLocation': 'Daloa',
-        'destination': 'Abidjan, Port',
-        'amount': '120000'
-      },
-    ),
-    FreightNotification(
-      id: '5',
-      title: 'Livraison terminée',
-      message: 'Votre livraison de cacao a été livrée avec succès à destination. Veuillez confirmer la réception.',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      type: NotificationType.statusChange,
-      data: {'serviceId': 'S457', 'newStatus': 'Livré', 'product': 'Cacao - 500kg', 'deliveryTime': '10:45'},
-    ),
-  ];
+  Widget _buildEmptyState() {
+    return Expanded(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icône de notification
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.notifications_none_outlined,
+                  size: 50,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Titre
+              const Text(
+                'Aucune notification',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              Text(
+                'Vous n\'avez pas encore reçu de notifications',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Les mises à jour concernant vos livraisons et devis apparaîtront ici',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Types de notifications
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Types de notifications que vous recevrez:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNotificationType(
+                      icon: Icons.description_outlined,
+                      color: Colors.blue,
+                      title: 'Nouveaux devis',
+                      description: 'Lorsqu\'un nouveau devis est disponible pour une demande',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildNotificationType(
+                      icon: Icons.local_shipping_outlined,
+                      color: Colors.orange,
+                      title: 'Mises à jour de statut',
+                      description: 'Lorsque le statut d\'une livraison change',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildNotificationType(
+                      icon: Icons.check_circle_outline,
+                      color: Colors.green,
+                      title: 'Services acceptés',
+                      description: 'Lorsqu\'une demande de transport est acceptée',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Bouton pour rafraîchir
+              TextButton.icon(
+                onPressed: _loadNotifications,
+                icon: const Icon(Icons.refresh_outlined),
+                label: const Text('Rafraîchir'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationType({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _FilterChip extends StatelessWidget {
