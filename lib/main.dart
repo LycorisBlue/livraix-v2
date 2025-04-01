@@ -33,8 +33,6 @@ class MyApp extends StatelessWidget {
         title: 'LIVRAIX',
         debugShowCheckedModeBanner: false,
         theme: AppThemes.lightTheme,
-        darkTheme: AppThemes.darkTheme,
-        themeMode: ThemeMode.system,
         builder: AppThemes.buildWrapper,
         routerConfig: appRouter.router,
       ),
