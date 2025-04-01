@@ -57,7 +57,7 @@ class AuthService {
         };
       } else {
         // Échec de l'enregistrement
-        return {'success': false, 'message': responseData['message'] ?? 'Erreur lors de l\'enregistrement', 'data': null};
+        return {'success': false, 'message': responseData['businessErreurDescription'] ?? 'Erreur lors de l\'enregistrement', 'data': null};
       }
     } catch (e) {
       // Erreur de connexion ou autre
@@ -88,7 +88,7 @@ class AuthService {
         // Échec de la vérification
         return {
           'success': false,
-          'message': responseData['message'] ?? 'Code de vérification incorrect ou expiré.',
+          'message': responseData['businessErreurDescription'] ?? 'Code de vérification incorrect ou expiré.',
           'data': null
         };
       }
@@ -121,7 +121,7 @@ class AuthService {
         } catch (_) {
           // Si le corps n'est pas un JSON valide
         }
-        return {'success': false, 'message': errorData['message'] ?? 'Identifiants incorrects', 'data': null};
+        return {'success': false, 'message': errorData['businessErreurDescription'] ?? 'Identifiants incorrects', 'data': null};
       }
 
       // Succès de l'authentification

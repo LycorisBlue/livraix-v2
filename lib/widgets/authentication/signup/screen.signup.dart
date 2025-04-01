@@ -120,8 +120,8 @@ class _SignupScreenState extends State<SignupScreen> {
   void _showValidationError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(message, style: const TextStyle(color: Colors.white),),
+        backgroundColor: AppColors.backgroundLight,
       ),
     );
   }
