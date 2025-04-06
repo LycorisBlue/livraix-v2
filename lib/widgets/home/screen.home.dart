@@ -12,15 +12,52 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isAvailable = true;
-   String _location = 'En attente...';
+  String _location = 'En attente...';
   UserDetails? _userDetails;
   bool _isLoading = true;
+  List<dynamic> _livraisons = [];
+  final LivraisonService _livraisonService = LivraisonService();
 
   @override
   void initState() {
     super.initState();
     _loadUserDetails();
     _loadLocation();
+    _loadLivraisons();
+  }
+
+  Future<void> _loadLivraisons() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _livraisonService.getLivraisons();
+
+      if (result['success']) {
+        List<dynamic> allLivraisons = result['data'];
+
+        // Filtrer les livraisons où entreprise n'est pas null
+        List<dynamic> filteredLivraisons = allLivraisons.where((livraison) => livraison['entreprise'] != null).toList();
+
+        setState(() {
+          _livraisons = filteredLivraisons;
+          _isLoading = false;
+        });
+      } else {
+        print('Erreur lors de la récupération des livraisons: ${result['message']}');
+        setState(() {
+          _livraisons = [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Exception lors du chargement des livraisons: $e');
+      setState(() {
+        _livraisons = [];
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadLocation() async {
@@ -46,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
 
   Future<void> _loadUserDetails() async {
     try {
@@ -87,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.grey[50],
       body: Column(
         children: [
-         DriverProfileHeader(
+          DriverProfileHeader(
             location: _location,
             isAvailable: _isAvailable,
           ),
@@ -152,8 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 20),
 
-                        // État vide pour les commandes
-                        _buildEmptyOrdersState(),
+                        // Liste des livraisons ou état vide
+                        _livraisons.isEmpty ? _buildEmptyOrdersState() : _buildLivraisonsList(),
 
                         const SizedBox(height: 20),
 
@@ -166,6 +202,95 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildLivraisonsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _livraisons.map((livraison) {
+        final id = livraison['id'] ?? '';
+        final product = livraison['nomProduit'] ?? 'Produit inconnu';
+        final weight = livraison['poids'] ?? 0;
+        final origin = livraison['adresseDepart'] ?? 'Origine inconnue';
+        final destination = livraison['adresseDestination'] ?? 'Destination inconnue';
+        final status = livraison['statutLivraison'] ?? 'EN_ATTENTE';
+        final date = livraison['dateDeLivraison'] != null ? DateTime.parse(livraison['dateDeLivraison']) : DateTime.now();
+        final entrepriseName =
+            livraison['entreprise'] != null ? livraison['entreprise']['nomEntreprise'] ?? 'Entreprise' : 'Entreprise inconnue';
+
+        // Calculer grossièrement la distance (cela serait mieux avec une API de calcul d'itinéraire)
+        final distance = "Distance non calculée";
+        final duration = "Durée non calculée";
+
+        return DeliveryCard(
+          title: product,
+          id: id,
+          pickupDate: DateFormat('dd/MM/yyyy').format(date),
+          pickupWeight: "${weight}kg",
+          origin: origin,
+          destination: destination,
+          distance: distance,
+          duration: duration,
+          onTap: () {
+            // Ouvrir les détails de la livraison
+            _showDeliveryDetails(livraison);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  // Méthode pour afficher les détails d'une livraison
+  void _showDeliveryDetails(dynamic livraison) {
+    final id = livraison['id'] ?? '';
+    final product = livraison['nomProduit'] ?? 'Produit inconnu';
+    final weight = livraison['poids'] ?? 0;
+    final origin = livraison['adresseDepart'] ?? 'Origine inconnue';
+    final destination = livraison['adresseDestination'] ?? 'Destination inconnue';
+    final date = livraison['dateDeLivraison'] != null ? DateTime.parse(livraison['dateDeLivraison']) : DateTime.now();
+
+    // Coordonnées pour la carte
+    final latitudeDepart = livraison['latitudeDepart'] ?? 0.0;
+    final longitudeDepart = livraison['longitudeDepart'] ?? 0.0;
+    final latitudeDestination = livraison['latitudeDestination'] ?? 0.0;
+    final longitudeDestination = livraison['longitudeDestination'] ?? 0.0;
+
+    DeliveryDetailsBottomSheet.show(
+      context,
+      title: product,
+      id: id,
+      route: "$origin → $destination",
+      distance: "Distance non calculée",
+      duration: "Durée non calculée",
+      date: DateFormat('dd/MM/yyyy HH:mm').format(date),
+      weight: "${weight}kg",
+      originCoords: LatLng(latitudeDepart, longitudeDepart),
+      destinationCoords: LatLng(latitudeDestination, longitudeDestination),
+      onAccept: () {
+        // Appeler le service pour accepter la livraison
+        _acceptLivraison(id);
+      },
+    );
+  }
+
+  // Méthode pour accepter une livraison
+  Future<void> _acceptLivraison(String livraisonId) async {
+    try {
+      // Vous devrez implémenter cette méthode dans votre service
+      // final result = await _livraisonService.acceptLivraison(livraisonId);
+
+      // Recharger les livraisons après acceptation
+      _loadLivraisons();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Livraison acceptée avec succès')),
+      );
+    } catch (e) {
+      print('Erreur lors de l\'acceptation de la livraison: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de l\'acceptation de la livraison')),
+      );
+    }
   }
 
   // Widget pour l'en-tête pendant le chargement
