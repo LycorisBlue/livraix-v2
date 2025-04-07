@@ -1,49 +1,81 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/utils/app.router.dart';
 import 'package:livraix/utils/app.theme.dart';
 import 'package:livraix/widgets/splash/widget.splash.dart';
-import 'package:web_socket_channel/io.dart';
-import 'dart:io';
+import 'package:stomp_dart_client/stomp_dart_client.dart';
 
-// Fonction pour tester la connexion avec différents protocoles
-Future<void> testWebSocketConnection(String protocol, String host, String path, Map<String, dynamic> headers) async {
-  final url = '$protocol$host$path';
-  print('Test de connexion à $url...');
+late StompClient stompClient;
+void onConnect(StompFrame frame) {
+  print('Connected');
+  stompClient.subscribe(
+    destination: '/user/gondomoisegm@gmail.com/queue/messages',
+    callback: (frame) {
+      print('Réception : ${frame.body}');
+    },
+  );
 
-  try {
-    final channel = IOWebSocketChannel.connect(Uri.parse(url), headers: headers);
-
-    bool connected = false;
-
-    channel.stream.listen(
-      (message) {
-        connected = true;
-        print('✅ Connexion réussie à $url');
-        print('Message reçu: $message');
-      },
-      onError: (error) {
-        print('❌ Erreur avec $url: $error');
-      },
-      onDone: () {
-        if (!connected) {
-          print('⚠️ Connexion fermée sans recevoir de message: $url');
-        } else {
-          print('⚠️ Connexion fermée: $url');
-        }
-      },
-    );
-
-    // Envoyer un message de test
-    channel.sink.add('{"type":"ping"}');
-
-    // Attendre un peu pour voir la réponse
-    await Future.delayed(Duration(seconds: 2));
-  } catch (e) {
-    print('❌ Échec de connexion à $url: $e');
-  }
 }
+
+// Pour envoyer des messages
+
+void sendMessage(message) {
+    // Exemple d'objet de message à envoyer en paramètre de cette fonction
+    // Inspire toi du code front_end aussi pour voir ce que j'ai fait là bas
+
+    //Decliner offre
+
+    // dynamic newMsg = {
+    //     "id": '',
+    //     "dateMessage": new Date().toISOString().slice(0, -1),
+    //     "statut": 'DECLINE_T',
+    //     "livraisonId": livraisonId,
+    //     envoyeurId: idUser, // user connecté
+    //     recepteurId: recepteurId, id de l'entreprise concernée
+    //     contenu: "Déclinée", 
+    //   };
+
+
+    // Acepter offre
+
+    // dynamic newMsg = {
+    //     "id": '',
+    //     "dateMessage": new Date().toISOString().slice(0, -1),
+    //     "statut": 'ACCEPT_T',
+    //     "livraisonId": livraisonId,
+    //     envoyeurId: idUser, // user connecté
+    //     recepteurId: recepteurId, //id de l'entreprise concernée
+    //     contenu: offreFinale, // Le dernier montant de la conversation
+    //   };
+
+    // Simple offre
+
+    // dynamic newMsg = {
+    //   id: '',
+    //   dateMessage: new Date().toISOString().slice(0, -1),
+    //   statut: 'OFFER',
+    //   livraisonId: livraisonId,
+    //   envoyeurId: idUser, // user connecté,
+    //   recepteurId: recepteurId, //id de l'entreprise concernée
+    //   contenu: messageText, // montant à envoyer pour l'offre
+    // };
+
+    try {
+      if (stompClient.connected) {
+        stompClient.send(
+          destination: '/app/sendMessage',
+          body: json.encode(message),
+        );
+
+      }
+    }catch (error) {
+      print('🚫 WebSocket non connecté. $error');
+    }
+  }
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,16 +89,20 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Information du serveur
-  final host = 'api.livraix.com';
-  final path = '/ws';
-  final headers = {'username': 'test_user'};
 
+  stompClient = StompClient(
+    config: StompConfig(
+      url: 'ws://192.168.2.1:9090/ws/websocket',
+      onConnect: onConnect,
+      onWebSocketError: (dynamic error) => print(error.toString()),
+      stompConnectHeaders: {
+        'username': "gondomoisegm@gmail.com", // Faut changer avec l'email du transporteur qui est connecté
+      },
+    ),
+  );
+
+  stompClient.activate();
   // Tester différents protocoles
-  await testWebSocketConnection('ws://', host, path, headers);
-  await testWebSocketConnection('wss://', host, path, headers);
-  await testWebSocketConnection('http://', host, path, headers);
-  await testWebSocketConnection('https://', host, path, headers);
 
   runApp(const MyApp());
 }
