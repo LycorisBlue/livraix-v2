@@ -59,8 +59,8 @@ void main() async {
 
   // Information du serveur
   final host = 'api.livraix.com';
-  final path = '/ws';
-  final headers = {'username': 'test_user'};
+  final path = '/ws/websocket';
+  final headers = {'username': 'bluelycoris99@gmail.com'};
 
   // Tester différents protocoles
   await testWebSocketConnection('ws://', host, path, headers);
