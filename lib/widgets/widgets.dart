@@ -340,7 +340,9 @@ class DeliveryDetailsBottomSheet extends StatelessWidget {
                   ),
                 ),
 
-                // Boutons d'action
+// Modification de la partie des boutons d'action dans _buildContentSection() du DeliveryDetailsBottomSheet
+
+// Boutons d'action
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -358,25 +360,26 @@ class DeliveryDetailsBottomSheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-Expanded(
+                      Expanded(
                         child: CustomButton(
-                          text: 'Prendre en charge',
+                          text: 'Discuter cette livraison',
                           color: const Color(0xFF074F24),
                           textColor: Colors.white,
                           onPressed: () {
                             // Afficher le popup de confirmation
                             AppPopup.show(
                               context: context,
-                              icon: Icons.check_circle,
-                              title: 'Confirmer la prise en charge',
-                              content: 'Une fois validé, le client recevra votre disponibilité pour cette livraison.',
+                              icon: Icons.chat_bubble_outline,
+                              title: 'Démarrer une discussion',
+                              content:
+                                  'Vous pourrez discuter des conditions de cette livraison avec le client et négocier le prix avant de l\'accepter définitivement.',
                               closeButtonText: 'Annuler',
-                              actionButtonText: 'Valider',
+                              actionButtonText: 'Discuter',
                               onActionPressed: () {
                                 // Action exécutée après confirmation
-                                if (onAccept != null) onAccept!(); // Appelle le callback onAccept si fourni
+                                if (onAccept != null)
+                                  onAccept!(); // Ce callback sera modifié pour ouvrir la conversation au lieu d'accepter directement
                                 Navigator.pop(context); // Ferme la BottomSheet
-                                context.pushNamed(HistoryScreen.name); // Redirige vers HistoryScreen
                               },
                             );
                           },
@@ -385,7 +388,8 @@ Expanded(
                     ],
                   ),
                 ),
-              ],
+                // Boutons d'action
+],
             ),
           ),
         ),

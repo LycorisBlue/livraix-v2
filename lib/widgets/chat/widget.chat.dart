@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:livraix/database/app.generalmanager.dart';
-import 'package:livraix/models/chat/models.chat_message.dart';
-import 'package:livraix/models/user_cnx_details.dart';
+import 'package:livraix/models/chat/models.conversation.dart';
+import 'package:livraix/models/chat/models.conversation_message.dart';
+import 'package:livraix/utils/app.websocket_manager.dart';
 import 'package:livraix/widgets/home/widget.home.dart';
 import 'package:livraix/widgets/widgets.dart';
+
+import 'conversation_detail.dart';
 
 part 'screen.chat.dart';
 
@@ -39,8 +41,7 @@ class ChatHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           const CircleAvatar(
-            backgroundImage: NetworkImage(
-                'https://cdn-icons-png.flaticon.com/512/4712/4712009.png'),
+            backgroundImage: NetworkImage('https://cdn-icons-png.flaticon.com/512/4712/4712009.png'),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -155,7 +156,7 @@ class _ChatInputState extends State<ChatInput> {
 //Widget de propositions de message
 
 class MessageBubble extends StatelessWidget {
-  final ChatMessage message;
+  final ConversationMessage message;
 
   const MessageBubble({
     super.key,
@@ -165,18 +166,16 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final isBot = message.isBot;
+    final isMe = message.isSentByMe;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment:
-            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isBot) _buildAvatar(),
-          if (isBot) const SizedBox(width: 8),
+          if (!isMe) _buildAvatar(),
+          if (!isMe) const SizedBox(width: 8),
           Flexible(
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -184,16 +183,16 @@ class MessageBubble extends StatelessWidget {
                 vertical: 10,
               ),
               decoration: BoxDecoration(
-                color: isBot ? Colors.grey[100] : theme.colorScheme.primary,
+                color: isMe ? theme.colorScheme.primary : Colors.grey[100],
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    message.text,
+                    message.content,
                     style: TextStyle(
-                      color: isBot ? Colors.black : Colors.white,
+                      color: isMe ? Colors.white : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -201,15 +200,15 @@ class MessageBubble extends StatelessWidget {
                     DateFormat('HH:mm').format(message.timestamp),
                     style: TextStyle(
                       fontSize: 10,
-                      color: isBot ? Colors.grey : Colors.white70,
+                      color: isMe ? Colors.white70 : Colors.grey,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          if (!isBot) const SizedBox(width: 8),
-          if (!isBot) _buildUserAvatar(),
+          if (isMe) const SizedBox(width: 8),
+          if (isMe) _buildUserAvatar(),
         ],
       ),
     );
@@ -218,16 +217,14 @@ class MessageBubble extends StatelessWidget {
   Widget _buildAvatar() {
     return const CircleAvatar(
       radius: 16,
-      backgroundImage: NetworkImage(
-          'https://cdn-icons-png.flaticon.com/512/4712/4712009.png'),
+      backgroundImage: NetworkImage('https://cdn-icons-png.flaticon.com/512/4712/4712009.png'),
     );
   }
 
   Widget _buildUserAvatar() {
     return const CircleAvatar(
       radius: 16,
-      backgroundImage: NetworkImage(
-          'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
+      backgroundImage: NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
     );
   }
 }

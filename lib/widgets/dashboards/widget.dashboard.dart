@@ -186,7 +186,7 @@ class WeeklyStatsChart extends StatelessWidget {
                       final int index = value.toInt();
                       if (index >= 0 && index < days.length) {
                         return SideTitleWidget(
-                          axisSide: meta.axisSide,
+                          meta: meta,
                           child: Column(
                             children: [
                               Text(

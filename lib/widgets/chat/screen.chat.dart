@@ -11,34 +11,61 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-
+  final WebSocketManager _webSocketManager = WebSocketManager();
+  List<Conversation> _conversations = [];
+  Conversation? _selectedConversation;
   bool _isLoading = true;
-  List<ChatContact> _contacts = []; // Liste vide des contacts
+  bool _isConnected = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initializeChat();
   }
 
-  Future<void> _loadData() async {
-    try {
-      // Chargement des données utilisateur
-
-      // Dans une application réelle, vous chargeriez les conversations depuis une API
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // Aucune conversation n'est disponible à ce stade
+  Future<void> _initializeChat() async {
+    // S'abonner aux streams
+    _webSocketManager.conversationsStream.listen((conversations) {
       setState(() {
-        _contacts = []; // Liste vide
+        _conversations = conversations;
         _isLoading = false;
       });
-    } catch (e) {
-      print('Erreur lors du chargement des données: $e');
+    });
+
+    _webSocketManager.connectionStatusStream.listen((isConnected) {
       setState(() {
-        _isLoading = false;
+        _isConnected = isConnected;
+        if (isConnected) {
+          _errorMessage = null;
+        }
       });
-    }
+    });
+
+    _webSocketManager.errorStream.listen((error) {
+      setState(() {
+        _errorMessage = error;
+      });
+    });
+
+    // Récupérer l'état initial
+    setState(() {
+      _conversations = _webSocketManager.conversations;
+      _isConnected = _webSocketManager.isConnected;
+      _isLoading = false;
+    });
+  }
+
+  void _selectConversation(Conversation conversation) {
+    setState(() {
+      _selectedConversation = conversation;
+    });
+  }
+
+  void _closeConversation() {
+    setState(() {
+      _selectedConversation = null;
+    });
   }
 
   @override
@@ -49,15 +76,18 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             _buildChatHeader(),
+            if (_errorMessage != null) _buildErrorBanner(),
             _isLoading
                 ? const Expanded(
                     child: Center(
                       child: CircularProgressIndicator(color: AppColors.primary),
                     ),
                   )
-                : Expanded(
-                    child: _contacts.isEmpty ? _buildEmptyState() : _buildConversationsList(),
-                  ),
+                : _selectedConversation != null
+                    ? _buildConversationDetail()
+                    : Expanded(
+                        child: _conversations.isEmpty ? _buildEmptyState() : _buildConversationsList(),
+                      ),
           ],
         ),
       ),
@@ -83,53 +113,237 @@ class _ChatScreenState extends State<ChatScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Messages',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh_outlined),
-                color: AppColors.primary,
-                onPressed: _loadData,
-              ),
+              _selectedConversation != null
+                  ? GestureDetector(
+                      onTap: _closeConversation,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.arrow_back, color: Colors.black),
+                          SizedBox(width: 8),
+                          Text(
+                            'Conversations',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const Text(
+                      'Messages',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+              _buildConnectionStatus(),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    enabled: false, // Désactivé car aucune conversation
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher une conversation...',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
+          if (_selectedConversation == null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher une conversation...',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      onChanged: (value) {
+                        // Filtrer les conversations
+                      },
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionStatus() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _isConnected ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _isConnected ? Icons.wifi : Icons.wifi_off,
+            size: 16,
+            color: _isConnected ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _isConnected ? 'Connecté' : 'Déconnecté',
+            style: TextStyle(
+              fontSize: 12,
+              color: _isConnected ? Colors.green : Colors.red,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.red.shade50,
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage ?? 'Une erreur est survenue',
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.red, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {
+              setState(() {
+                _errorMessage = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConversationsList() {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _conversations.length,
+      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final conversation = _conversations[index];
+        final lastMessage = conversation.lastMessage;
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: AppColors.primary.withOpacity(0.2),
+            child: Text(
+              conversation.title.isNotEmpty ? conversation.title[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  conversation.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (conversation.hasUnreadMessages)
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
+          subtitle: lastMessage != null
+              ? Text(
+                  _getMessagePreview(lastMessage),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: conversation.hasUnreadMessages ? Colors.black87 : Colors.grey[600],
+                    fontWeight: conversation.hasUnreadMessages ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                )
+              : const Text('Aucun message'),
+          trailing: lastMessage != null
+              ? Text(
+                  _formatTime(lastMessage.timestamp),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                )
+              : null,
+          onTap: () => _selectConversation(conversation),
+        );
+      },
+    );
+  }
+
+  String _getMessagePreview(ConversationMessage message) {
+    switch (message.type) {
+      case MessageType.offer:
+        return 'Offre: ${message.content} XOF';
+      case MessageType.acceptOffer:
+        return 'Offre acceptée: ${message.content} XOF';
+      case MessageType.declineOffer:
+        return 'Offre refusée';
+      case MessageType.text:
+        return message.content;
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return DateFormat('dd/MM').format(dateTime);
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m';
+    } else {
+      return 'à l\'instant';
+    }
+  }
+
+  Widget _buildConversationDetail() {
+    if (_selectedConversation == null) return const SizedBox();
+
+    return Expanded(
+      child: ConversationDetailScreen(
+        conversation: _selectedConversation!,
+        webSocketManager: _webSocketManager,
+        onBack: _closeConversation,
       ),
     );
   }
@@ -248,13 +462,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Bouton secondaire : contacter le support
+                // Bouton pour rafraîchir
                 SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
-                    onPressed: _contactSupport,
-                    icon: const Icon(Icons.support_agent_outlined),
-                    label: const Text('Contacter le support'),
+                    onPressed: _initializeChat,
+                    icon: const Icon(Icons.refresh_outlined),
+                    label: const Text('Rafraîchir les conversations'),
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -274,150 +488,8 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildConversationsList() {
-    // Cette méthode ne sera pas appelée actuellement car la liste est vide,
-    // mais est incluse pour complétude
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _contacts.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final contact = _contacts[index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primary.withOpacity(0.2),
-            child: Text(
-              contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          title: Text(contact.name),
-          subtitle: Text(
-            contact.lastMessage,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Text(
-            contact.lastMessageTime,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-          onTap: () {
-            // Navigation vers la conversation
-          },
-        );
-      },
-    );
-  }
-
-  void _contactSupport() {
-    // Dans une application réelle, ceci créerait une conversation avec le support
-    // Pour l'instant, nous simulons une conversation avec l'assistant virtuel
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Connexion à l\'assistant virtuel...'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-
-    // Naviguer vers l'assistant virtuel
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-
-      // Créer une conversation avec l'assistant
-      final assistantChat = ChatScreen.path; // Dans une implémentation réelle, ceci serait un path spécifique
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const VirtualAssistantChat(),
-        ),
-      );
-    });
-  }
-}
-
-// Modèle simple pour les contacts de chat
-class ChatContact {
-  final String id;
-  final String name;
-  final String lastMessage;
-  final String lastMessageTime;
-  final bool unread;
-
-  ChatContact({
-    required this.id,
-    required this.name,
-    required this.lastMessage,
-    required this.lastMessageTime,
-    this.unread = false,
-  });
-}
-
-// Widget fictif pour l'assistant virtuel
-class VirtualAssistantChat extends StatelessWidget {
-  const VirtualAssistantChat({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Assistant Virtuel'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.support_agent,
-                size: 80,
-                color: AppColors.primary.withOpacity(0.7),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Assistant virtuel en cours de développement',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Cette fonctionnalité sera bientôt disponible pour vous aider dans vos livraisons.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Retour'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void dispose() {
+    super.dispose();
   }
 }

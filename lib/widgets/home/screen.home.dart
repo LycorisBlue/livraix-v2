@@ -241,6 +241,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Méthode pour afficher les détails d'une livraison
+
+// Méthode pour afficher les détails d'une livraison
   void _showDeliveryDetails(dynamic livraison) {
     final id = livraison['id'] ?? '';
     final product = livraison['nomProduit'] ?? 'Produit inconnu';
@@ -248,6 +250,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final origin = livraison['adresseDepart'] ?? 'Origine inconnue';
     final destination = livraison['adresseDestination'] ?? 'Destination inconnue';
     final date = livraison['dateDeLivraison'] != null ? DateTime.parse(livraison['dateDeLivraison']) : DateTime.now();
+    final entrepriseId = livraison['entreprise'] != null ? livraison['entreprise']['id'] ?? '' : '';
+    final entrepriseName =
+        livraison['entreprise'] != null ? livraison['entreprise']['nomEntreprise'] ?? 'Entreprise' : 'Entreprise inconnue';
 
     // Coordonnées pour la carte
     final latitudeDepart = livraison['latitudeDepart'] ?? 0.0;
@@ -267,13 +272,52 @@ class _HomeScreenState extends State<HomeScreen> {
       originCoords: LatLng(latitudeDepart, longitudeDepart),
       destinationCoords: LatLng(latitudeDestination, longitudeDestination),
       onAccept: () {
-        // Appeler le service pour accepter la livraison
-        _acceptLivraison(id);
+        // Initialiser le WebSocketManager pour créer la conversation
+        final webSocketManager = WebSocketManager();
+
+        // Envoyer un message de type offre pour démarrer la conversation
+        webSocketManager.sendSimpleOffer(id, entrepriseId, "Intéressé").then((success) {
+          if (success) {
+            // Marquer la livraison comme "en discussion" dans le système backend (à implémenter)
+            // _markLivraisonAsDiscussing(id);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Conversation démarrée avec succès')),
+            );
+
+            // Naviguer vers l'écran de chat
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (!mounted) return;
+              context.pushNamed(ChatScreen.name);
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Échec de création de la conversation')),
+            );
+          }
+        });
+      },
+      onDecline: () {
+        // Créer un WebSocketManager pour envoyer le message de refus
+        final webSocketManager = WebSocketManager();
+
+        // Envoyer un message via WebSocket pour informer l'entreprise
+        webSocketManager.sendDeclineOffer(id, entrepriseId).then((success) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Livraison refusée avec succès')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Échec de l\'envoi du message de refus')),
+            );
+          }
+        });
       },
     );
   }
 
-  // Méthode pour accepter une livraison
+// Méthode pour accepter une livraison
   Future<void> _acceptLivraison(String livraisonId) async {
     try {
       // Vous devrez implémenter cette méthode dans votre service
