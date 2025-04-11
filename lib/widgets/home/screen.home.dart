@@ -276,27 +276,21 @@ class _HomeScreenState extends State<HomeScreen> {
         final webSocketManager = WebSocketManager();
 
         // Envoyer un message de type offre pour démarrer la conversation
-        webSocketManager.sendSimpleOffer(id, entrepriseId, "Intéressé").then((success) {
+        // Dans _showDeliveryDetails
+        webSocketManager.createLocalConversationAndSendOffer(id, entrepriseId, entrepriseName, "Intéressé").then((success) {
           if (success) {
-            // Marquer la livraison comme "en discussion" dans le système backend (à implémenter)
-            // _markLivraisonAsDiscussing(id);
-
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Conversation démarrée avec succès')),
             );
 
             // Naviguer vers l'écran de chat
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (!mounted) return;
-              context.pushNamed(ChatScreen.name);
-            });
+            if (!mounted) return;
+            context.pushNamed(ChatScreen.name);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Échec de création de la conversation')),
-            );
+            // Gérer l'échec
           }
         });
-      },
+},
       onDecline: () {
         // Créer un WebSocketManager pour envoyer le message de refus
         final webSocketManager = WebSocketManager();

@@ -92,6 +92,28 @@ class ChatService {
     });
   }
 
+  /// Envoie un message texte simple
+  Future<bool> sendTextMessage(String livraisonId, String recepteurId, String text) async {
+    final UserDetails? userDetails = await GeneralManagerDB.getUserDetails();
+
+    if (userDetails == null) {
+      _notifyError('Aucun utilisateur connecté');
+      return false;
+    }
+
+    final Map<String, dynamic> message = {
+      "id": '',
+      "dateMessage": DateTime.now().toIso8601String().split('.').first,
+      "statut": 'TEXT', // Utilisez le statut 'TEXT' pour les messages texte
+      "livraisonId": livraisonId,
+      "envoyeurId": userDetails.id, // id de l'utilisateur connecté
+      "recepteurId": recepteurId, // id du destinataire
+      "contenu": text, // Le contenu du message texte
+    };
+
+    return sendMessage(message);
+  }
+
   /// Méthode appelée lorsqu'une erreur WebSocket survient
   void _onWebSocketError(dynamic error) {
     _isConnected = false;

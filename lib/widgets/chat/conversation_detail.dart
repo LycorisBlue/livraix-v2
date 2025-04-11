@@ -34,7 +34,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     messages: [],
   );
 
-  bool _isShowingOfferInput = false;
+  bool _isShowingOfferInput = true;
   bool _isSending = false;
   String? _errorMessage;
 
@@ -76,6 +76,30 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     super.dispose();
   }
 
+  void _refreshCurrentConversation() {
+    // Rechercher la conversation actuelle dans la liste mise à jour
+    final updatedConversation = widget.webSocketManager.conversations.firstWhere(
+      (conv) => conv.id == _conversation.id,
+      orElse: () => _conversation,
+    );
+
+    setState(() {
+      _conversation = updatedConversation;
+    });
+
+    // Faire défiler vers le bas pour montrer le nouveau message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+// Pour _sendOffer
   Future<void> _sendOffer() async {
     if (_offerController.text.isEmpty) return;
 
@@ -87,21 +111,59 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     });
 
     try {
-      final success = await widget.webSocketManager.sendSimpleOffer(
+      final success = await widget.webSocketManager.createLocalConversationAndSendMessage(
         _conversation.deliveryId,
         _conversation.companyId ?? "",
         offerAmount,
+        MessageType.offer,
+      );
+
+      if (success) {
+        _refreshCurrentConversation();
+      }
+
+      if (!success) {
+        setState(() {
+          _errorMessage =
+              "Échec de l'envoi de l'offre. Le message a été ajouté localement mais pourrait ne pas être reçu par le destinataire.";
+        });
+      }
+
+      _offerController.clear();
+      setState(() {
+        _isShowingOfferInput = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Une erreur est survenue: $e";
+      });
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
+    }
+  }
+Future<void> _sendTextMessage() async {
+    if (_messageController.text.isEmpty) return;
+
+    setState(() {
+      _isSending = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final success = await widget.webSocketManager.sendTextMessage(
+        _conversation.deliveryId,
+        _conversation.companyId ?? "",
+        _messageController.text.trim(),
       );
 
       if (!success) {
         setState(() {
-          _errorMessage = "Échec de l'envoi de l'offre. Veuillez réessayer.";
+          _errorMessage = "Échec de l'envoi du message. Veuillez réessayer.";
         });
       } else {
-        _offerController.clear();
-        setState(() {
-          _isShowingOfferInput = false;
-        });
+        _messageController.clear();
       }
     } catch (e) {
       setState(() {
@@ -114,18 +176,6 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     }
   }
 
-  Future<void> _sendTextMessage() async {
-    if (_messageController.text.isEmpty) return;
-
-    // Cette fonctionnalité n'est pas encore implémentée dans WebSocketManager
-    // Pour l'instant, nous affichons juste un message d'erreur
-    setState(() {
-      _errorMessage = "L'envoi de messages texte n'est pas encore disponible.";
-      _messageController.clear();
-    });
-  }
-
-
 @override
   Widget build(BuildContext context) {
     return Column(
@@ -136,7 +186,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           child: _buildMessagesList(),
         ),
         _buildActionButtons(), // Ajout des boutons d'action pour accepter/refuser
-        _isShowingOfferInput ? _buildOfferInput() : _buildMessageInput(),
+        true ? _buildOfferInput() : _buildMessageInput(),
       ],
     );
   }

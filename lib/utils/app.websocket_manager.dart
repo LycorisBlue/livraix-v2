@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as Math;
 import 'package:flutter/foundation.dart';
 import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/models/chat/models.conversation.dart';
 import 'package:livraix/models/chat/models.conversation_message.dart';
+import 'package:livraix/models/user_cnx_details.dart';
 import 'package:livraix/repository/services/chat_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,6 +52,129 @@ class WebSocketManager {
       return initialized;
     } catch (e) {
       _handleError('Erreur lors de l\'initialisation du WebSocketManager: $e');
+      return false;
+    }
+  }
+
+  // Dans WebSocketManager, ajoutez une méthode pour créer une conversation locale
+  Future<bool> createLocalConversationAndSendOffer(
+      String livraisonId, String entrepriseId, String entrepriseName, String content) async {
+    try {
+      // Générer un message temporaire
+      final userDetails = await GeneralManagerDB.getUserDetails();
+      if (userDetails == null) return false;
+
+      final message = ConversationMessage(
+        id: null, // Sera attribué par le serveur
+        timestamp: DateTime.now(),
+        content: content,
+        type: MessageType.offer,
+        senderUserId: userDetails.id,
+        receiverUserId: entrepriseId,
+        deliveryId: livraisonId,
+        isSentByMe: true,
+      );
+
+      // Créer une conversation locale
+      final newConversation = Conversation.createWithInitialMessage(
+        id: livraisonId,
+        title: entrepriseName,
+        deliveryId: livraisonId,
+        companyId: entrepriseId,
+        initialMessage: message,
+      );
+
+      // Ajouter à la liste des conversations locales
+      _conversations.add(newConversation);
+      _notifyConversationsChanged();
+
+      // Sauvegarder en local
+      _saveConversationsToStorage();
+
+      // Envoyer le message au serveur
+      return await sendSimpleOffer(livraisonId, entrepriseId, content);
+    } catch (e) {
+      _handleError('Erreur lors de la création de la conversation locale: $e');
+      return false;
+    }
+  }
+
+  /// Envoie un message texte
+  Future<bool> sendTextMessage(String deliveryId, String receiverId, String text) async {
+    final result = await _chatService.sendTextMessage(deliveryId, receiverId, text);
+
+    if (result) {
+      // Le message sera ajouté à la conversation lorsqu'il sera reçu via le WebSocket
+      debugPrint('📤 Message texte envoyé avec succès');
+    }
+
+    return result;
+  }
+
+  // Dans WebSocketManager, ajoutez cette méthode
+  Future<bool> createLocalConversationAndSendMessage(String deliveryId, String receiverId, String content, MessageType type,
+      {String? receiverName}) async {
+    try {
+      final UserDetails? userDetails = await GeneralManagerDB.getUserDetails();
+      if (userDetails == null) return false;
+
+      // Créer un message temporaire
+      final message = ConversationMessage(
+        id: null,
+        timestamp: DateTime.now(),
+        content: content,
+        type: type,
+        senderUserId: userDetails.id,
+        receiverUserId: receiverId,
+        deliveryId: deliveryId,
+        isSentByMe: true,
+      );
+
+      // Créer ou mettre à jour la conversation
+      final existingConversation = _findConversationByDeliveryId(deliveryId);
+
+      if (existingConversation != null) {
+        // Ajouter à une conversation existante
+        final updatedConversation = existingConversation.addMessage(message);
+        _updateConversation(updatedConversation);
+        debugPrint('✅ Message ajouté localement à la conversation existante');
+      } else {
+        // Créer une nouvelle conversation
+        final newConversation = Conversation.createWithInitialMessage(
+          id: deliveryId,
+          title: receiverName ?? "Conversation #${deliveryId.substring(0, Math.min(deliveryId.length, 4))}",
+          deliveryId: deliveryId,
+          companyId: receiverId,
+          initialMessage: message,
+        );
+        _conversations.add(newConversation);
+        debugPrint('✅ Nouvelle conversation créée localement');
+      }
+
+      // Notifier les auditeurs et sauvegarder
+      _notifyConversationsChanged();
+      _saveConversationsToStorage();
+
+      // Envoyer le message au serveur selon le type
+      bool success = false;
+      switch (type) {
+        case MessageType.offer:
+          success = await sendSimpleOffer(deliveryId, receiverId, content);
+          break;
+        case MessageType.text:
+          success = await sendTextMessage(deliveryId, receiverId, content);
+          break;
+        case MessageType.acceptOffer:
+          success = await sendAcceptOffer(deliveryId, receiverId, content);
+          break;
+        case MessageType.declineOffer:
+          success = await sendDeclineOffer(deliveryId, receiverId);
+          break;
+      }
+
+      return success;
+    } catch (e) {
+      _handleError('Erreur lors de la création locale du message: $e');
       return false;
     }
   }
