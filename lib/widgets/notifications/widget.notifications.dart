@@ -80,6 +80,10 @@ class NotificationItem extends StatelessWidget {
         iconData = Icons.check_circle_outline;
         iconColor = Colors.green;
         break;
+      case NotificationType.serviceDeclined:
+        iconData = Icons.cancel_outlined;
+        iconColor = Colors.red;
+        break;
     }
 
     return Container(
@@ -219,6 +223,10 @@ class NotificationDetailPopup extends StatelessWidget {
         iconData = Icons.check_circle_outline;
         iconColor = Colors.green;
         break;
+      case NotificationType.serviceDeclined:
+        iconData = Icons.cancel_outlined;
+        iconColor = Colors.red;
+        break;
     }
 
     return Container(
@@ -239,7 +247,31 @@ class NotificationDetailPopup extends StatelessWidget {
         return _buildStatusChangeDetails();
       case NotificationType.serviceAccepted:
         return _buildServiceAcceptedDetails();
+      case NotificationType.serviceDeclined:
+        return _buildServiceDeclinedDetails();
     }
+  }
+
+  Widget _buildServiceDeclinedDetails() {
+    final serviceData = notification.data;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Service refusé',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildDetailRow('Service', serviceData['serviceId'] ?? 'Non spécifié'),
+        _buildDetailRow('Transporteur', serviceData['transporterName'] ?? 'Non spécifié'),
+        _buildDetailRow('Date de refus', _formatTimestamp(notification.timestamp)),
+        _buildDetailRow('Raison', serviceData['reason'] ?? 'Non spécifiée'),
+      ],
+    );
   }
 
   Widget _buildQuotationDetails() {

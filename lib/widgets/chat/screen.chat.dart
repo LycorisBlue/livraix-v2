@@ -18,6 +18,17 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isConnected = false;
   String? _errorMessage;
 
+  bool _showCompleteConversations = false;
+
+// Créer une liste filtrée de conversations
+  List<Conversation> get _filteredConversations {
+    if (_showCompleteConversations) {
+      return _conversations;
+    } else {
+      return _conversations.where((conv) => !conv.isComplete).toList();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -240,71 +251,116 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildConversationsList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _conversations.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final conversation = _conversations[index];
-        final lastMessage = conversation.lastMessage;
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primary.withOpacity(0.2),
-            child: Text(
-              conversation.title.isNotEmpty ? conversation.title[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          title: Row(
+Widget _buildConversationsList() {
+    return Column(
+      children: [
+        // Ajouter un switch pour filtrer les conversations terminées
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: Text(
-                  conversation.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              const Text('Afficher les conversations terminées'),
+              Switch(
+                value: _showCompleteConversations,
+                onChanged: (value) {
+                  setState(() {
+                    _showCompleteConversations = value;
+                  });
+                },
+                activeColor: AppColors.primary,
               ),
-              if (conversation.hasUnreadMessages)
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
             ],
           ),
-          subtitle: lastMessage != null
-              ? Text(
-                  _getMessagePreview(lastMessage),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: conversation.hasUnreadMessages ? Colors.black87 : Colors.grey[600],
-                    fontWeight: conversation.hasUnreadMessages ? FontWeight.w500 : FontWeight.normal,
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: _filteredConversations.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final conversation = _filteredConversations[index];
+              final lastMessage = conversation.lastMessage;
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: conversation.isComplete ? Colors.grey.withOpacity(0.2) : AppColors.primary.withOpacity(0.2),
+                  child: Text(
+                    conversation.title.isNotEmpty ? conversation.title[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      color: conversation.isComplete ? Colors.grey : AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                )
-              : const Text('Aucun message'),
-          trailing: lastMessage != null
-              ? Text(
-                  _formatTime(lastMessage.timestamp),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                )
-              : null,
-          onTap: () => _selectConversation(conversation),
-        );
-      },
+                ),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        conversation.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: conversation.isComplete ? Colors.grey : Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (conversation.hasUnreadMessages && !conversation.isComplete)
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    // Afficher badge "Terminé" pour les conversations terminées
+                    if (conversation.isComplete)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Terminée',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                subtitle: lastMessage != null
+                    ? Text(
+                        _getMessagePreview(lastMessage),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: conversation.isComplete
+                              ? Colors.grey
+                              : (conversation.hasUnreadMessages ? Colors.black87 : Colors.grey[600]),
+                          fontWeight:
+                              conversation.hasUnreadMessages && !conversation.isComplete ? FontWeight.w500 : FontWeight.normal,
+                        ),
+                      )
+                    : const Text('Aucun message'),
+                trailing: lastMessage != null
+                    ? Text(
+                        _formatTime(lastMessage.timestamp),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      )
+                    : null,
+                onTap: () => _selectConversation(conversation),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -316,8 +372,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return 'Offre acceptée: ${message.content} XOF';
       case MessageType.declineOffer:
         return 'Offre refusée';
-      case MessageType.text:
-        return message.content;
     }
   }
 

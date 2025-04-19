@@ -27,6 +27,9 @@ class Conversation {
   /// Indique si la conversation a des messages non lus
   final bool hasUnreadMessages;
 
+  /// Indique si la conversation est terminée (acceptation ou refus)
+  final bool isComplete;
+
   /// Date du dernier message dans la conversation
   final DateTime lastMessageTime;
 
@@ -39,6 +42,7 @@ class Conversation {
     required this.deliveryId,
     required this.messages,
     this.hasUnreadMessages = false,
+    this.isComplete = false,
     DateTime? lastMessageTime,
   }) : lastMessageTime = lastMessageTime ?? (messages.isNotEmpty ? messages.last.timestamp : DateTime.now());
 
@@ -48,9 +52,17 @@ class Conversation {
   /// Ajoute un nouveau message à la conversation
   Conversation addMessage(ConversationMessage message) {
     final updatedMessages = List<ConversationMessage>.from(messages)..add(message);
+
+    // Si c'est une acceptation ou un refus, marquer la conversation comme terminée
+    bool isComplete = false;
+    if (message.type == MessageType.acceptOffer || message.type == MessageType.declineOffer) {
+      isComplete = true;
+    }
+
     return copyWith(
       messages: updatedMessages,
       lastMessageTime: message.timestamp,
+      isComplete: isComplete, // Nouveau paramètre à ajouter
     );
   }
 
@@ -65,6 +77,12 @@ class Conversation {
       messagesList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     }
 
+    // Vérifier si la conversation est complète (contient un message d'acceptation ou de refus)
+    bool isComplete = false;
+    if (messagesList.isNotEmpty) {
+      isComplete = messagesList.any((msg) => msg.type == MessageType.acceptOffer || msg.type == MessageType.declineOffer);
+    }
+
     return Conversation(
       id: json['id'] ?? '',
       title: json['title'] ?? 'Conversation',
@@ -74,6 +92,7 @@ class Conversation {
       deliveryId: json['deliveryId'] ?? '',
       messages: messagesList,
       hasUnreadMessages: json['hasUnreadMessages'] ?? false,
+      isComplete: json['isComplete'] ?? isComplete,
       lastMessageTime: messagesList.isNotEmpty ? messagesList.last.timestamp : DateTime.now(),
     );
   }
@@ -89,6 +108,7 @@ class Conversation {
       'deliveryId': deliveryId,
       'messages': messages.map((msg) => msg.toJson()).toList(),
       'hasUnreadMessages': hasUnreadMessages,
+      'isComplete': isComplete,
       'lastMessageTime': lastMessageTime.toIso8601String(),
     };
   }
@@ -103,6 +123,7 @@ class Conversation {
     String? deliveryId,
     List<ConversationMessage>? messages,
     bool? hasUnreadMessages,
+    bool? isComplete,
     DateTime? lastMessageTime,
   }) {
     return Conversation(
@@ -114,6 +135,7 @@ class Conversation {
       deliveryId: deliveryId ?? this.deliveryId,
       messages: messages ?? this.messages,
       hasUnreadMessages: hasUnreadMessages ?? this.hasUnreadMessages,
+      isComplete: isComplete ?? this.isComplete,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
     );
   }
@@ -127,7 +149,13 @@ class Conversation {
     String? transporterId,
     required String deliveryId,
     required ConversationMessage initialMessage,
+    bool isComplete = false,
   }) {
+    // Déterminer si la conversation est complète en fonction du type de message initial
+    // (par exemple, si c'est une acceptation ou un refus)
+    final bool isMessageComplete =
+        initialMessage.type == MessageType.acceptOffer || initialMessage.type == MessageType.declineOffer;
+
     return Conversation(
       id: id,
       title: title,
@@ -137,6 +165,7 @@ class Conversation {
       deliveryId: deliveryId,
       messages: [initialMessage],
       hasUnreadMessages: false,
+      isComplete: isComplete || isMessageComplete, // Si le message est d'acceptation/refus ou si isComplete est spécifié
       lastMessageTime: initialMessage.timestamp,
     );
   }

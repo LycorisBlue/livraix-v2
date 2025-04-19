@@ -241,104 +241,177 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showOfferDialog(BuildContext context, String livraisonId, String entrepriseId, String entrepriseName) {
-    String selectedOption = 'ACCEPTER';
     final TextEditingController _offerController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: AppColors.background,
-              title: const Text('Discuter cette livraison'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RadioListTile<String>(
-                    title: const Text('Accepter'),
-                    value: 'ACCEPTER',
-                    groupValue: selectedOption,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedOption = value!;
-                      });
-                    },
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('Faire une offre'),
-                    value: 'OFFRE',
-                    groupValue: selectedOption,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedOption = value!;
-                      });
-                    },
-                  ),
-                  if (selectedOption == 'OFFRE') ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _offerController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Montant de l\'offre (XOF)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
-                ],
+        return AlertDialog(
+          backgroundColor: AppColors.background,
+          title: const Text('Faire une offre'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Saisissez le montant de votre offre pour cette livraison',
+                style: TextStyle(fontSize: 14),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Annuler'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _offerController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Montant de l\'offre (XOF)',
+                  border: OutlineInputBorder(),
                 ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.of(ctx).pop(); // fermer le dialog
-                    final webSocketManager = WebSocketManager();
-                    bool success = false;
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final montant = _offerController.text.trim();
+                if (montant.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Veuillez saisir un montant')),
+                  );
+                  return;
+                }
 
-                    if (selectedOption == 'ACCEPTER') {
-                      success = await webSocketManager.sendAcceptOffer(
-                        livraisonId,
-                        entrepriseId,
-                        'Acceptée',
-                      );
-                    } else if (selectedOption == 'OFFRE') {
-                      final montant = _offerController.text.trim();
-                      if (montant.isNotEmpty) {
-                        success = await webSocketManager.createLocalConversationAndSendOffer(
-                          livraisonId,
-                          entrepriseId,
-                          entrepriseName,
-                          montant,
-                        );
-                        if (success && context.mounted) {
-                          context.pushNamed(ChatScreen.name);
-                        }
-                      }
-                    }
+                Navigator.of(ctx).pop(); // fermer le dialog
+                final webSocketManager = WebSocketManager();
 
-                    if (!success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Échec de l\'envoi du message')),
-                      );
-                    }
-                  },
-                  child: const Text('Valider'),
-                ),
-              ],
-            );
-          },
+                final success = await webSocketManager.createLocalConversationAndSendOffer(
+                  livraisonId,
+                  entrepriseId,
+                  entrepriseName,
+                  montant,
+                );
+
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Offre envoyée avec succès')),
+                  );
+                  context.pushNamed(ChatScreen.name);
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Échec de l\'envoi de l\'offre')),
+                  );
+                }
+              },
+              child: const Text('Envoyer l\'offre'),
+            ),
+          ],
         );
       },
     );
   }
 
-  // Méthode pour afficher les détails d'une livraison
+  // Méthode pour accepter directement une livraison sans ouvrir de conversation
+  void _handleAcceptDelivery(String livraisonId, String entrepriseId) async {
+    final webSocketManager = WebSocketManager();
 
-// Méthode pour afficher les détails d'une livraison
+    // Afficher un indicateur de chargement
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+
+    final success = await webSocketManager.sendAcceptOffer(
+      livraisonId,
+      entrepriseId,
+      'Acceptée',
+    );
+
+    // Fermer l'indicateur de chargement
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
+
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Livraison acceptée avec succès')),
+      );
+      // Recharger les livraisons pour mettre à jour la liste
+      _loadLivraisons();
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Échec de l\'acceptation de la livraison')),
+      );
+    }
+  }
+
+// Méthode pour refuser directement une livraison sans ouvrir de conversation
+  void _handleDeclineDelivery(String livraisonId, String entrepriseId) async {
+    final webSocketManager = WebSocketManager();
+
+    // Afficher une boîte de dialogue de confirmation
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('Confirmer le refus'),
+          content: const Text('Êtes-vous sûr de vouloir refuser cette livraison ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                Navigator.of(ctx).pop(); // Fermer la boîte de dialogue
+
+                // Afficher un indicateur de chargement
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
+                );
+
+                final success = await webSocketManager.sendDeclineOffer(
+                  livraisonId,
+                  entrepriseId,
+                );
+
+                // Fermer l'indicateur de chargement
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Livraison refusée')),
+                  );
+                  // Recharger les livraisons pour mettre à jour la liste
+                  _loadLivraisons();
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Échec du refus de la livraison')),
+                  );
+                }
+              },
+              child: const Text('Refuser'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showDeliveryDetails(dynamic livraison) {
     final id = livraison['id'] ?? '';
     final product = livraison['nomProduit'] ?? 'Produit inconnu';
@@ -356,7 +429,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final latitudeDestination = livraison['latitudeDestination'] ?? 0.0;
     final longitudeDestination = livraison['longitudeDestination'] ?? 0.0;
 
-    DeliveryDetailsBottomSheet.show(
+    // Utiliser le nouveau composant DeliveryDetailsScreen à la place de DeliveryDetailsBottomSheet
+    DeliveryDetailsScreen.show(
       context,
       title: product,
       id: id,
@@ -367,25 +441,17 @@ class _HomeScreenState extends State<HomeScreen> {
       weight: "${weight}kg",
       originCoords: LatLng(latitudeDepart, longitudeDepart),
       destinationCoords: LatLng(latitudeDestination, longitudeDestination),
-      onAccept: () {
+      onMakeOffer: () {
+        // Afficher la boîte de dialogue d'offre
         _showOfferDialog(context, id, entrepriseId, entrepriseName);
       },
+      onAccept: () {
+        // Utiliser la nouvelle méthode pour accepter directement
+        _handleAcceptDelivery(id, entrepriseId);
+      },
       onDecline: () {
-        // Créer un WebSocketManager pour envoyer le message de refus
-        final webSocketManager = WebSocketManager();
-
-        // Envoyer un message via WebSocket pour informer l'entreprise
-        webSocketManager.sendDeclineOffer(id, entrepriseId).then((success) {
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Livraison refusée avec succès')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Échec de l\'envoi du message de refus')),
-            );
-          }
-        });
+        // Utiliser la nouvelle méthode pour refuser directement
+        _handleDeclineDelivery(id, entrepriseId);
       },
     );
   }
@@ -682,36 +748,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
-  }
-
-  // Obtenir le nom de l'utilisateur
-  String _getUserName() {
-    if (_userDetails == null) {
-      return "Transporteur";
-    }
-
-    final nom = _userDetails!.profile.nom;
-    final prenom = _userDetails!.profile.prenom;
-
-    if (nom.isEmpty && prenom.isEmpty) {
-      return _userDetails!.email;
-    }
-
-    return "$prenom $nom";
-  }
-
-  // Générer un code transporteur
-  String _getDriverCode() {
-    if (_userDetails == null || _userDetails!.id == null) {
-      return 'TRS0000';
-    }
-
-    // Générer un code à partir de l'ID (utiliser les 6 premiers caractères)
-    final id = _userDetails!.id!;
-    if (id.length >= 6) {
-      return 'TRS${id.substring(0, 4).toUpperCase()}';
-    }
-
-    return 'TRS${id.toUpperCase()}';
   }
 }

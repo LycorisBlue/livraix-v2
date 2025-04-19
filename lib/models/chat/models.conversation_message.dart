@@ -10,9 +10,6 @@ enum MessageType {
 
   /// Message de refus d'offre
   declineOffer,
-
-  /// Message texte simple
-  text,
 }
 
 /// Classe représentant un message dans une conversation
@@ -67,7 +64,7 @@ class ConversationMessage {
         messageType = MessageType.declineOffer;
         break;
       default:
-        messageType = MessageType.text;
+        messageType = MessageType.offer; // Par défaut c'est une offre
     }
 
     // Convertir la date du message
@@ -94,7 +91,7 @@ class ConversationMessage {
   }
 
   /// Convertir le message en objet JSON pour l'envoi au serveur
-  Map<String, dynamic> toJson() {
+Map<String, dynamic> toJson() {
     String statut;
     switch (type) {
       case MessageType.offer:
@@ -105,9 +102,6 @@ class ConversationMessage {
         break;
       case MessageType.declineOffer:
         statut = 'DECLINE_T';
-        break;
-      case MessageType.text:
-        statut = 'TEXT';
         break;
     }
 

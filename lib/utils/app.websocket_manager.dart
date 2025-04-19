@@ -56,10 +56,18 @@ class WebSocketManager {
     }
   }
 
-  // Dans WebSocketManager, ajoutez une méthode pour créer une conversation locale
-  Future<bool> createLocalConversationAndSendOffer(
+Future<bool> createLocalConversationAndSendOffer(
       String livraisonId, String entrepriseId, String entrepriseName, String content) async {
     try {
+      // Vérifier si une conversation existe déjà pour cette livraison
+      final existingConversation = _findConversationByDeliveryId(livraisonId);
+
+      if (existingConversation != null && !existingConversation.isComplete) {
+        // Si une conversation active existe déjà, ajouter le message d'offre à celle-ci
+        return await createLocalConversationAndSendMessage(livraisonId, entrepriseId, content, MessageType.offer,
+            receiverName: entrepriseName);
+      }
+
       // Générer un message temporaire
       final userDetails = await GeneralManagerDB.getUserDetails();
       if (userDetails == null) return false;
@@ -82,6 +90,7 @@ class WebSocketManager {
         deliveryId: livraisonId,
         companyId: entrepriseId,
         initialMessage: message,
+        isComplete: false, // S'assurer que la conversation est active
       );
 
       // Ajouter à la liste des conversations locales
@@ -111,7 +120,6 @@ class WebSocketManager {
     return result;
   }
 
-  // Dans WebSocketManager, ajoutez cette méthode
   Future<bool> createLocalConversationAndSendMessage(String deliveryId, String receiverId, String content, MessageType type,
       {String? receiverName}) async {
     try {
@@ -130,45 +138,54 @@ class WebSocketManager {
         isSentByMe: true,
       );
 
-      // Créer ou mettre à jour la conversation
-      final existingConversation = _findConversationByDeliveryId(deliveryId);
-
-      if (existingConversation != null) {
-        // Ajouter à une conversation existante
-        final updatedConversation = existingConversation.addMessage(message);
-        _updateConversation(updatedConversation);
-        debugPrint('✅ Message ajouté localement à la conversation existante');
-      } else {
-        // Créer une nouvelle conversation
-        final newConversation = Conversation.createWithInitialMessage(
-          id: deliveryId,
-          title: receiverName ?? "Conversation #${deliveryId.substring(0, Math.min(deliveryId.length, 4))}",
-          deliveryId: deliveryId,
-          companyId: receiverId,
-          initialMessage: message,
-        );
-        _conversations.add(newConversation);
-        debugPrint('✅ Nouvelle conversation créée localement');
-      }
-
-      // Notifier les auditeurs et sauvegarder
-      _notifyConversationsChanged();
-      _saveConversationsToStorage();
-
-      // Envoyer le message au serveur selon le type
       bool success = false;
+
+      // Gérer le cas selon le type de message
       switch (type) {
         case MessageType.offer:
+          // Pour une offre, créer ou mettre à jour la conversation
+          final existingConversation = _findConversationByDeliveryId(deliveryId);
+
+          if (existingConversation != null) {
+            // Ajouter à une conversation existante
+            final updatedConversation = existingConversation.addMessage(message);
+            _updateConversation(updatedConversation);
+            debugPrint('✅ Message d\'offre ajouté localement à la conversation existante');
+          } else {
+            // Créer une nouvelle conversation
+            final newConversation = Conversation.createWithInitialMessage(
+              id: deliveryId,
+              title: receiverName ?? "Conversation #${deliveryId.substring(0, Math.min(deliveryId.length, 4))}",
+              deliveryId: deliveryId,
+              companyId: receiverId,
+              initialMessage: message,
+            );
+            _conversations.add(newConversation);
+            debugPrint('✅ Nouvelle conversation créée localement pour une offre');
+          }
+
+          // Notifier les auditeurs et sauvegarder
+          _notifyConversationsChanged();
+          _saveConversationsToStorage();
+
+          // Envoyer l'offre au serveur
           success = await sendSimpleOffer(deliveryId, receiverId, content);
           break;
-        case MessageType.text:
-          success = await sendTextMessage(deliveryId, receiverId, content);
-          break;
+
         case MessageType.acceptOffer:
+          // Pour une acceptation, juste envoyer le message sans créer de conversation
           success = await sendAcceptOffer(deliveryId, receiverId, content);
+
+          // Si une conversation existante existe, la marquer comme terminée
+          await closeConversationAfterDecision(deliveryId);
           break;
+
         case MessageType.declineOffer:
+          // Pour un refus, juste envoyer le message sans créer de conversation
           success = await sendDeclineOffer(deliveryId, receiverId);
+
+          // Si une conversation existante existe, la marquer comme terminée
+          await closeConversationAfterDecision(deliveryId);
           break;
       }
 
@@ -283,24 +300,30 @@ class WebSocketManager {
   }
 
   /// Envoie un message d'acceptation d'offre
-  Future<bool> sendAcceptOffer(String deliveryId, String receiverId, String offerAmount) async {
+Future<bool> sendAcceptOffer(String deliveryId, String receiverId, String offerAmount) async {
     final result = await _chatService.sendAcceptOffer(deliveryId, receiverId, offerAmount);
 
     if (result) {
       // Le message sera ajouté à la conversation lorsqu'il sera reçu via le WebSocket
       debugPrint('📤 Offre acceptée envoyée avec succès');
+
+      // Fermer la conversation correspondante si elle existe
+      await closeConversationAfterDecision(deliveryId);
     }
 
     return result;
   }
 
   /// Envoie un message de refus d'offre
-  Future<bool> sendDeclineOffer(String deliveryId, String receiverId) async {
+Future<bool> sendDeclineOffer(String deliveryId, String receiverId) async {
     final result = await _chatService.sendDeclineOffer(deliveryId, receiverId);
 
     if (result) {
       // Le message sera ajouté à la conversation lorsqu'il sera reçu via le WebSocket
       debugPrint('📤 Offre refusée envoyée avec succès');
+
+      // Fermer la conversation correspondante si elle existe
+      await closeConversationAfterDecision(deliveryId);
     }
 
     return result;
@@ -384,6 +407,21 @@ class WebSocketManager {
       await prefs.setString(_conversationsStorageKey, conversationsJson);
     } catch (e) {
       _handleError('Erreur lors de la sauvegarde des conversations: $e');
+    }
+  }
+
+  /// Marque une conversation comme terminée après acceptation ou refus
+  Future<void> closeConversationAfterDecision(String conversationId) async {
+    final existingConversation = _findConversationByDeliveryId(conversationId);
+
+    if (existingConversation != null) {
+      final updatedConversation = existingConversation.copyWith(
+        isComplete: true,
+      );
+
+      _updateConversation(updatedConversation);
+      _notifyConversationsChanged();
+      await _saveConversationsToStorage();
     }
   }
 

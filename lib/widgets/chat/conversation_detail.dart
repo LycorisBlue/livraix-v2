@@ -185,8 +185,10 @@ Future<void> _sendTextMessage() async {
         Expanded(
           child: _buildMessagesList(),
         ),
-        _buildActionButtons(), // Ajout des boutons d'action pour accepter/refuser
-        true ? _buildOfferInput() : _buildMessageInput(),
+        // Si la conversation est terminée, ne pas afficher les boutons d'action
+        if (!_conversation.isComplete) _buildActionButtons(),
+        // Afficher uniquement l'input d'offre et seulement si la conversation n'est pas terminée
+        if (!_conversation.isComplete) _buildOfferInput(),
       ],
     );
   }
@@ -311,8 +313,6 @@ Future<void> _sendTextMessage() async {
         return _buildAcceptOfferMessage(message);
       case MessageType.declineOffer:
         return _buildDeclineOfferMessage(message);
-      case MessageType.text:
-        return _buildTextMessage(message, isMe);
     }
   }
 
@@ -720,7 +720,7 @@ Future<void> _sendTextMessage() async {
     );
   }
 
-  Future<void> _sendAcceptOffer() async {
+Future<void> _sendAcceptOffer() async {
     // Récupérer le dernier montant proposé
     final lastOffer = _findLastOfferAmount();
 
@@ -741,8 +741,8 @@ Future<void> _sendTextMessage() async {
           const SnackBar(content: Text('Livraison acceptée avec succès!')),
         );
 
-        // Optionnel: Fermer la conversation et revenir à la liste
-        // widget.onBack();
+        // Fermer la conversation et revenir à la liste
+        widget.onBack();
       } else {
         setState(() {
           _errorMessage = "Échec de l'acceptation. Veuillez réessayer.";
@@ -759,7 +759,7 @@ Future<void> _sendTextMessage() async {
     }
   }
 
-  Future<void> _sendDeclineOffer() async {
+Future<void> _sendDeclineOffer() async {
     setState(() {
       _isSending = true;
       _errorMessage = null;
@@ -793,7 +793,6 @@ Future<void> _sendTextMessage() async {
       });
     }
   }
-
   // Fonction utilitaire pour trouver le dernier montant d'offre dans la conversation
   String? _findLastOfferAmount() {
     // Parcourir la liste des messages en sens inverse pour trouver la dernière offre

@@ -10,6 +10,7 @@ import 'package:livraix/utils/app.websocket_manager.dart';
 import 'package:livraix/widgets/chat/widget.chat.dart';
 import 'package:livraix/widgets/notifications/widget.notifications.dart';
 import 'package:livraix/widgets/widgets.dart';
+import 'package:livraix/widgets/delivery_details/widget.delivery_details.dart';
 
 part 'screen.home.dart';
 

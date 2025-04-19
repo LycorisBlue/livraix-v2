@@ -2,7 +2,8 @@
 enum NotificationType {
   statusChange,
   quotation,
-  serviceAccepted
+  serviceAccepted,
+  serviceDeclined // Ajout d'un type pour le refus
 }
 
 class FreightNotification {

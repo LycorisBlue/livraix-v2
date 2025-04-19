@@ -165,6 +165,7 @@ class ChatService {
   }
 
   /// Envoie un message d'acceptation d'offre
+  /// Note: Ceci ne crée pas de conversation, juste un message d'acceptation
   Future<bool> sendAcceptOffer(String livraisonId, String recepteurId, String offreFinale) async {
     final UserDetails? userDetails = await GeneralManagerDB.getUserDetails();
 
@@ -187,6 +188,7 @@ class ChatService {
   }
 
   /// Envoie un message de déclinaison d'offre
+  /// Note: Ceci ne crée pas de conversation, juste un message de refus
   Future<bool> sendDeclineOffer(String livraisonId, String recepteurId) async {
     final UserDetails? userDetails = await GeneralManagerDB.getUserDetails();
 
