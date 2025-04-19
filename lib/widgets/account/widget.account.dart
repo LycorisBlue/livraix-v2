@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:livraix/repository/auth.service.dart';
 import 'package:livraix/widgets/account/personal_info/widget.personal_info.dart';
+import 'package:livraix/widgets/welcome/widget.welcome.dart';
 
 part 'screen.account.dart';
 
@@ -99,8 +101,73 @@ class ProfileItemTile extends StatelessWidget {
 
   const ProfileItemTile({super.key, required this.item});
 
+    void _showLogoutConfirmation(BuildContext context, AuthService authService) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Déconnexion'),
+          content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Fermer la boîte de dialogue
+              },
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext); // Fermer la boîte de dialogue
+                
+                // Afficher un indicateur de chargement
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
+                );
+                
+                // Effectuer la déconnexion
+                final result = await authService.logout();
+                
+                // Fermer l'indicateur de chargement
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+                
+                if (result['success']) {
+                  // Naviguer vers l'écran d'accueil sans vider la pile
+                  context.pushReplacement(WelcomeScreen.path);
+                } else {
+                  // Afficher un message d'erreur
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result['message']),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Déconnecter'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final AuthService _authService = AuthService();
+
+
     return ListTile(
       leading: Icon(item.icon, color: item.iconColor ?? Colors.deepPurple),
       title: Text(
@@ -153,7 +220,7 @@ class ProfileItemTile extends StatelessWidget {
             // );
             break;
           case 'Se Déconnecter':
-            // context.pushNamed();
+            _showLogoutConfirmation(context, _authService);
             break;
 
           case 'Activer Mon Compte':

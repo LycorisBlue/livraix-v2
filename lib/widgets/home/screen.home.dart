@@ -240,6 +240,102 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showOfferDialog(BuildContext context, String livraisonId, String entrepriseId, String entrepriseName) {
+    String selectedOption = 'ACCEPTER';
+    final TextEditingController _offerController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.background,
+              title: const Text('Discuter cette livraison'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<String>(
+                    title: const Text('Accepter'),
+                    value: 'ACCEPTER',
+                    groupValue: selectedOption,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedOption = value!;
+                      });
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Faire une offre'),
+                    value: 'OFFRE',
+                    groupValue: selectedOption,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedOption = value!;
+                      });
+                    },
+                  ),
+                  if (selectedOption == 'OFFRE') ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _offerController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Montant de l\'offre (XOF)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop(); // fermer le dialog
+                    final webSocketManager = WebSocketManager();
+                    bool success = false;
+
+                    if (selectedOption == 'ACCEPTER') {
+                      success = await webSocketManager.sendAcceptOffer(
+                        livraisonId,
+                        entrepriseId,
+                        'Acceptée',
+                      );
+                    } else if (selectedOption == 'OFFRE') {
+                      final montant = _offerController.text.trim();
+                      if (montant.isNotEmpty) {
+                        success = await webSocketManager.createLocalConversationAndSendOffer(
+                          livraisonId,
+                          entrepriseId,
+                          entrepriseName,
+                          montant,
+                        );
+                        if (success && context.mounted) {
+                          context.pushNamed(ChatScreen.name);
+                        }
+                      }
+                    }
+
+                    if (!success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Échec de l\'envoi du message')),
+                      );
+                    }
+                  },
+                  child: const Text('Valider'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Méthode pour afficher les détails d'une livraison
 
 // Méthode pour afficher les détails d'une livraison
@@ -272,25 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
       originCoords: LatLng(latitudeDepart, longitudeDepart),
       destinationCoords: LatLng(latitudeDestination, longitudeDestination),
       onAccept: () {
-        // Initialiser le WebSocketManager pour créer la conversation
-        final webSocketManager = WebSocketManager();
-
-        // Envoyer un message de type offre pour démarrer la conversation
-        // Dans _showDeliveryDetails
-        webSocketManager.createLocalConversationAndSendOffer(id, entrepriseId, entrepriseName, "Intéressé").then((success) {
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Conversation démarrée avec succès')),
-            );
-
-            // Naviguer vers l'écran de chat
-            if (!mounted) return;
-            context.pushNamed(ChatScreen.name);
-          } else {
-            // Gérer l'échec
-          }
-        });
-},
+        _showOfferDialog(context, id, entrepriseId, entrepriseName);
+      },
       onDecline: () {
         // Créer un WebSocketManager pour envoyer le message de refus
         final webSocketManager = WebSocketManager();

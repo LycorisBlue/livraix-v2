@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/models/user_cnx_details.dart';
+import 'package:livraix/widgets/welcome/widget.welcome.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -182,6 +183,21 @@ class AuthService {
       }
     } catch (e) {
       return {'success': false, 'message': 'Erreur de connexion au serveur: ${e.toString()}', 'data': null};
+    }
+  }
+
+    // Méthode de déconnexion
+  Future<Map<String, dynamic>> logout() async {
+    try {
+      // Supprimer le token et les données utilisateur
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await GeneralManagerDB.deleteUserDetails();
+      await GeneralManagerDB.saveLastRoute(WelcomeScreen.path);
+
+      return {'success': true, 'message': 'Déconnexion réussie', 'data': null};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur lors de la déconnexion: ${e.toString()}', 'data': null};
     }
   }
 

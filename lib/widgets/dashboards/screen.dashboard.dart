@@ -15,10 +15,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   UserDetails? _userDetails;
   bool _isLoading = true;
 
+  // Données de solde
+  Map<String, dynamic>? _balanceData;
+  bool _isLoadingBalance = true;
+  String _errorMessage = '';
+  final BalanceService _balanceService = BalanceService();
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadBalanceData();
   }
 
   Future<void> _loadUserData() async {
@@ -38,6 +45,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print('Erreur lors du chargement des données utilisateur: $e');
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadBalanceData() async {
+    setState(() {
+      _isLoadingBalance = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final result = await _balanceService.getCurrentUserBalance();
+
+      if (result['success']) {
+        setState(() {
+          _balanceData = result['data'];
+          _isLoadingBalance = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoadingBalance = false;
+        });
+      }
+    } catch (e) {
+      print('Erreur lors du chargement du solde: $e');
+      setState(() {
+        _errorMessage = 'Erreur lors du chargement du solde';
+        _isLoadingBalance = false;
       });
     }
   }
@@ -82,8 +118,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
 
-                      // État vide pour la bannière de solde
-                      _buildEmptyBalanceBanner(),
+                      // Bannière de solde
+                      _isLoadingBalance
+                          ? _buildLoadingBalanceBanner()
+                          : (_balanceData != null ? _buildBalanceBanner() : _buildEmptyBalanceBanner()),
 
                       // État vide pour les cartes statistiques
                       Row(
@@ -189,6 +227,189 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Widget pour afficher la bannière de solde pendant le chargement
+  Widget _buildLoadingBalanceBanner() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10, bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF074F24),
+            const Color(0xFF074F24).withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Solde disponible',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontFamily: 'Gilroy',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'Chargement...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Gilroy',
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Patientez',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'Gilroy',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget pour afficher la bannière de solde avec les données
+  Widget _buildBalanceBanner() {
+    // Récupérer le montant du solde
+    final double montant = _balanceData?['montant'] != null ? double.parse(_balanceData!['montant'].toString()) : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10, bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF074F24),
+            const Color(0xFF074F24).withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Solde disponible',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontFamily: 'Gilroy',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                '${montant.toStringAsFixed(0)} XOF',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Gilroy',
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    // Ici vous pourriez ajouter une fonctionnalité pour retirer de l'argent
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Fonctionnalité de retrait à venir')),
+                    );
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Retirer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Gilroy',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_errorMessage.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: 'Gilroy',
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   // Widget pour afficher une bannière de solde vide
   Widget _buildEmptyBalanceBanner() {
     return Container(
@@ -227,10 +448,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             children: [
               const Text(
-                'En attente de données',
+                '0 XOF',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Gilroy',
                 ),
@@ -243,7 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'À venir',
+                  'Retirer',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -253,6 +474,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+          if (_errorMessage.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: 'Gilroy',
+                ),
+              ),
+            ),
         ],
       ),
     );

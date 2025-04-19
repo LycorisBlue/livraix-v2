@@ -167,7 +167,6 @@ class CustomTextField extends StatelessWidget {
   }
 }
 
-
 class DeliveryDetailsBottomSheet extends StatelessWidget {
   final String title;
   final String id;
@@ -367,21 +366,9 @@ class DeliveryDetailsBottomSheet extends StatelessWidget {
                           textColor: Colors.white,
                           onPressed: () {
                             // Afficher le popup de confirmation
-                            AppPopup.show(
-                              context: context,
-                              icon: Icons.chat_bubble_outline,
-                              title: 'Démarrer une discussion',
-                              content:
-                                  'Vous pourrez discuter des conditions de cette livraison avec le client et négocier le prix avant de l\'accepter définitivement.',
-                              closeButtonText: 'Annuler',
-                              actionButtonText: 'Discuter',
-                              onActionPressed: () {
-                                // Action exécutée après confirmation
-                                if (onAccept != null)
-                                  onAccept!(); // Ce callback sera modifié pour ouvrir la conversation au lieu d'accepter directement
-                                Navigator.pop(context); // Ferme la BottomSheet
-                              },
-                            );
+                            if (onAccept != null) {
+                              onAccept!(); // on déclenche l'action métier définie au niveau parent
+                            }
                           },
                         ),
                       ),
@@ -389,7 +376,7 @@ class DeliveryDetailsBottomSheet extends StatelessWidget {
                   ),
                 ),
                 // Boutons d'action
-],
+              ],
             ),
           ),
         ),
@@ -480,8 +467,7 @@ class DeliveryDetailsBottomSheet extends StatelessWidget {
 
   // Méthode pour ouvrir l'application de cartographie avec l'itinéraire
 
-
-Future<void> _launchMapDirections() async {
+  Future<void> _launchMapDirections() async {
     // Valider les coordonnées de destination
     if (destinationCoords == null) {
       print('Coordonnées invalides');
@@ -518,7 +504,6 @@ Future<void> _launchMapDirections() async {
     }
   }
 
-
   Widget _buildMap(BuildContext context) {
     return FlutterMap(
       options: MapOptions(
@@ -539,10 +524,10 @@ Future<void> _launchMapDirections() async {
               width: 40,
               height: 40,
               child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 40,
-                  ),
+                Icons.location_on,
+                color: Colors.red,
+                size: 40,
+              ),
             ),
             Marker(
               point: originCoords,
@@ -561,7 +546,6 @@ Future<void> _launchMapDirections() async {
     );
   }
 }
-
 
 class CustomButton extends StatelessWidget {
   final String text;
