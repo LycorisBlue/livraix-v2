@@ -62,4 +62,150 @@ class BalanceService {
       return {'success': false, 'message': 'Erreur lors de la récupération du solde: ${e.toString()}', 'data': null};
     }
   }
+
+  // Calculer les frais de retrait
+  Future<Map<String, dynamic>> calculateWithdrawalFee({
+    required String country,
+    required String provider,
+    required double amount,
+    String operationType = "TOP_UP",
+    bool toReceive = true,
+  }) async {
+    try {
+      // Récupérer le token d'authentification
+      final String? token = await GeneralManagerDB.getSessionUser();
+
+      if (token == null) {
+        return {'success': false, 'message': 'Utilisateur non authentifié', 'data': null};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/fee/getFee'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          "country": country,
+          "provider": provider,
+          "amount": amount,
+          "operationType": operationType,
+          "toReceive": toReceive,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final String responseBody = utf8.decode(response.bodyBytes);
+        final dynamic responseData = jsonDecode(responseBody);
+
+        if (responseData['success'] == true) {
+          // Calculer les frais en soustrayant le montant initial du montant total
+          final double totalAmount =
+              responseData['amountWithFee'] != null ? double.parse(responseData['amountWithFee'].toString()) : 0.0;
+          final double feeAmount = totalAmount - amount;
+
+          return {
+            'success': true,
+            'message': responseData['message'] ?? 'Calcul des frais réussi',
+            'data': {'totalAmount': totalAmount, 'feeAmount': feeAmount, 'originalAmount': amount}
+          };
+        } else {
+          return {'success': false, 'message': responseData['message'] ?? 'Erreur lors du calcul des frais', 'data': null};
+        }
+      } else {
+        // Gérer les différents codes d'erreur
+        String message = 'Erreur lors du calcul des frais';
+
+        try {
+          final errorData = jsonDecode(response.body);
+          message = errorData['message'] ?? message;
+        } catch (_) {}
+
+        return {'success': false, 'message': message, 'data': null};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur de connexion au serveur: ${e.toString()}', 'data': null};
+    }
+  }
+
+  // Faire un retrait
+  Future<Map<String, dynamic>> makeWithdrawal({
+    required String phoneNumber,
+    required double amount,
+    required String provider,
+    String country = "CI",
+    String currency = "XOF",
+  }) async {
+    try {
+      // Récupérer le token d'authentification
+      final String? token = await GeneralManagerDB.getSessionUser();
+
+      if (token == null) {
+        return {'success': false, 'message': 'Utilisateur non authentifié', 'data': null};
+      }
+
+      // Récupérer l'utilisateur actuellement connecté
+      final userDetails = await GeneralManagerDB.getUserDetails();
+
+      if (userDetails == null) {
+        return {'success': false, 'message': 'Utilisateur non connecté', 'data': null};
+      }
+
+      final userId = userDetails.id;
+
+      if (userId == null) {
+        return {'success': false, 'message': 'ID utilisateur non disponible', 'data': null};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/paiement/hub/postPaymentIntents'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          "userId": userId,
+          "country": country,
+          "provider": provider,
+          "amount": amount,
+          "currency": currency,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Essayer de parser la réponse comme JSON
+        try {
+          final String responseBody = utf8.decode(response.bodyBytes);
+          final dynamic responseData = jsonDecode(responseBody);
+
+          return {'success': true, 'message': 'Retrait initié avec succès', 'data': responseData};
+        } catch (_) {
+          // Si la réponse n'est pas un JSON valide, utiliser le contenu texte brut
+          final String responseText = response.body;
+
+          return {
+            'success': true,
+            'message': 'Retrait initié',
+            'data': {'response': responseText}
+          };
+        }
+      } else {
+        // Gérer les différents codes d'erreur
+        String message = 'Erreur lors du retrait';
+
+        try {
+          // Essayer de parser l'erreur comme JSON
+          final errorData = jsonDecode(response.body);
+          message = errorData['message'] ?? message;
+        } catch (_) {
+          // Si ce n'est pas un JSON valide, utiliser le texte brut de la réponse
+          message = response.body.isNotEmpty ? response.body : 'Quelque chose s\'est mal passé';
+        }
+
+        return {'success': false, 'message': message, 'data': null};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur de connexion au serveur: ${e.toString()}', 'data': null};
+    }
+  }
 }
