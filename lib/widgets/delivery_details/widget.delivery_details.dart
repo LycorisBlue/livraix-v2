@@ -117,124 +117,127 @@ class DeliveryDetails extends StatelessWidget {
 
           // Contenu principal - Détails de la livraison
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Titre et ID
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      fontFamily: 'Gilroy',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Colis ID: $id',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      fontFamily: 'Gilroy',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Informations de livraison
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF074F24).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          date,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF074F24),
-                            fontFamily: 'Gilroy',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Pickup · $weight',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                          fontFamily: 'Gilroy',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Séparateur
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(height: 1, color: Colors.grey),
-                  ),
-
-                  // Section d'informations supplémentaires
-                  _buildInfoSection(
-                    title: 'Caractéristiques de la livraison',
-                    items: [
-                      InfoItem(
-                        icon: Icons.inventory_2_outlined,
-                        title: 'Type de chargement',
-                        value: 'Fragile',
-                      ),
-                      InfoItem(
-                        icon: Icons.scale_outlined,
-                        title: 'Poids total',
-                        value: weight,
-                      ),
-                      InfoItem(
-                        icon: Icons.local_shipping_outlined,
-                        title: 'Type de véhicule requis',
-                        value: 'Camion benne',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Instructions supplémentaires
-                  const Text(
-                    'Instructions',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF074F24),
-                      fontFamily: 'Gilroy',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: const Text(
-                      'Manipuler avec précaution. La livraison contient des objets fragiles.',
-                      style: TextStyle(
-                        fontSize: 14,
+            child: Container(
+              color: Colors.white,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Titre et ID
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                         color: Colors.black87,
                         fontFamily: 'Gilroy',
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Colis ID: $id',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontFamily: 'Gilroy',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                
+                    // Informations de livraison
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF074F24).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF074F24),
+                              fontFamily: 'Gilroy',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Pickup · $weight',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                            fontFamily: 'Gilroy',
+                          ),
+                        ),
+                      ],
+                    ),
+                
+                    // Séparateur
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Divider(height: 1, color: Colors.grey),
+                    ),
+                
+                    // Section d'informations supplémentaires
+                    _buildInfoSection(
+                      title: 'Caractéristiques de la livraison',
+                      items: [
+                        InfoItem(
+                          icon: Icons.inventory_2_outlined,
+                          title: 'Type de chargement',
+                          value: 'Fragile',
+                        ),
+                        InfoItem(
+                          icon: Icons.scale_outlined,
+                          title: 'Poids total',
+                          value: weight,
+                        ),
+                        InfoItem(
+                          icon: Icons.local_shipping_outlined,
+                          title: 'Type de véhicule requis',
+                          value: 'Camion benne',
+                        ),
+                      ],
+                    ),
+                
+                    const SizedBox(height: 20),
+                
+                    // Instructions supplémentaires
+                    const Text(
+                      'Instructions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF074F24),
+                        fontFamily: 'Gilroy',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: const Text(
+                        'Manipuler avec précaution. La livraison contient des objets fragiles.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontFamily: 'Gilroy',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -242,6 +245,7 @@ class DeliveryDetails extends StatelessWidget {
           // Actions
           Container(
             padding: const EdgeInsets.all(20),
+            height: 250,
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -252,77 +256,79 @@ class DeliveryDetails extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                // Bouton d'offre
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: onMakeOffer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF074F24),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Gilroy',
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Bouton d'offre
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: onMakeOffer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF074F24),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Gilroy',
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      child: const Text('Faire une offre'),
                     ),
-                    child: const Text('Faire une offre'),
                   ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Boutons Accepter/Refuser
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onAccept,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade100,
-                          foregroundColor: Colors.green.shade800,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Gilroy',
+              
+                  const SizedBox(height: 12),
+              
+                  // Boutons Accepter/Refuser
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onAccept,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade100,
+                            foregroundColor: Colors.green.shade800,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Gilroy',
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          child: const Text('Accepter'),
                         ),
-                        child: const Text('Accepter'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onDecline,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade100,
-                          foregroundColor: Colors.red.shade800,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Gilroy',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onDecline,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade100,
+                            foregroundColor: Colors.red.shade800,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Gilroy',
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          child: const Text('Refuser'),
                         ),
-                        child: const Text('Refuser'),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

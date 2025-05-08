@@ -27,7 +27,7 @@ class ChatService {
   final List<Function(String)> _errorCallbacks = [];
 
   // URL du serveur WebSocket
-  final String _serverUrl = 'ws://localhost:9090/ws/websocket';
+  final String _serverUrl = 'ws://api.livraix.com:9090/ws/websocket';
 
   /// Initialise et active la connexion STOMP
   Future<bool> initialize() async {
@@ -130,12 +130,12 @@ class ChatService {
   }
 
   /// Méthode appelée lorsqu'un message est reçu
-  void _onMessageReceived(StompFrame frame) {
+  void _onMessageReceived(dynamic frame) {
     try {
       if (frame.body != null) {
         final dynamic message = json.decode(frame.body!);
         _notifyMessage(message);
-        debugPrint('📨 Message reçu: ${frame.body}');
+        debugPrint('📨 Message reçu: ${(json.decode(message))["contenu"]}');
       }
     } catch (e) {
       _notifyError('Erreur lors de la réception du message: $e');
@@ -248,7 +248,8 @@ class ChatService {
   /// Notifie tous les callbacks de message
   void _notifyMessage(dynamic message) {
     for (final callback in _messageCallbacks) {
-      callback(message);
+      // à voir
+      callback(json.decode(message));
     }
   }
 

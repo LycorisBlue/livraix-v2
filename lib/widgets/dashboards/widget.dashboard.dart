@@ -6,6 +6,7 @@ import 'package:livraix/database/app.generalmanager.dart';
 import 'package:livraix/models/user_cnx_details.dart';
 import 'package:livraix/repository/balance.service.dart';
 import 'package:livraix/widgets/account/widget.account.dart';
+import 'package:livraix/widgets/withdrawal/widget.withdrawal_sheet.dart';
 import 'package:livraix/widgets/widgets.dart';
 
 part 'screen.dashboard.dart';

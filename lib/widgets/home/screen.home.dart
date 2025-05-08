@@ -312,43 +312,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Méthode pour accepter directement une livraison sans ouvrir de conversation
+
   void _handleAcceptDelivery(String livraisonId, String entrepriseId) async {
     final webSocketManager = WebSocketManager();
+    bool dialogShown = false;
 
-    // Afficher un indicateur de chargement
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const Center(
-          child: CircularProgressIndicator(),
+    try {
+      // Afficher un indicateur de chargement
+      dialogShown = true;
+
+      final success = await webSocketManager.sendAcceptOffer(
+        livraisonId,
+        entrepriseId,
+        'Acceptée',
+      );
+
+      // Fermer l'indicateur de chargement (si le contexte est toujours valide)
+      if (dialogShown && context.mounted) {
+        Navigator.of(context).pop();
+        dialogShown = false;
+      }
+
+      if (success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Livraison acceptée avec succès')),
         );
-      },
-    );
+        // Recharger les livraisons pour mettre à jour la liste
+        _loadLivraisons();
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Échec de l\'acceptation de la livraison')),
+        );
+      }
+    } catch (error) {
+      // S'assurer que le dialogue est fermé même en cas d'exception
+      if (dialogShown && context.mounted) {
+        Navigator.of(context).pop();
+      }
 
-    final success = await webSocketManager.sendAcceptOffer(
-      livraisonId,
-      entrepriseId,
-      'Acceptée',
-    );
-
-    // Fermer l'indicateur de chargement
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
-
-    if (success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Livraison acceptée avec succès')),
-      );
-      // Recharger les livraisons pour mettre à jour la liste
-      _loadLivraisons();
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Échec de l\'acceptation de la livraison')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: ${error.toString()}')),
+        );
+      }
     }
   }
+
 
 // Méthode pour refuser directement une livraison sans ouvrir de conversation
   void _handleDeclineDelivery(String livraisonId, String entrepriseId) async {
@@ -370,17 +379,6 @@ class _HomeScreenState extends State<HomeScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.of(ctx).pop(); // Fermer la boîte de dialogue
-
-                // Afficher un indicateur de chargement
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (BuildContext context) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  },
-                );
 
                 final success = await webSocketManager.sendDeclineOffer(
                   livraisonId,

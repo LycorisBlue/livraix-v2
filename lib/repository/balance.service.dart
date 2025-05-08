@@ -4,7 +4,7 @@ import 'package:livraix/database/app.generalmanager.dart';
 
 class BalanceService {
   // URL de base de l'API
-  final String baseUrl = 'http://localhost:9090'; // À remplacer par votre URL d'API réelle
+  final String baseUrl = 'https://api.livraix.com'; // À remplacer par votre URL d'API réelle
 
   // Récupérer le solde du transporteur par email
   Future<Map<String, dynamic>> getBalance(String email) async {
@@ -25,10 +25,12 @@ class BalanceService {
       );
 
       if (response.statusCode == 200) {
+        // Décoder la réponse avec gestion de l'encodage UTF-8
         final String responseBody = utf8.decode(response.bodyBytes);
         final dynamic responseData = jsonDecode(responseBody);
 
-        // Les données sont déjà dans le bon format, on les passe directement
+        // La réponse est directement passée à la vue
+        // On suppose que l'API retourne déjà le format attendu comme dans l'exemple fourni
         return {'success': true, 'message': 'Solde récupéré avec succès', 'data': responseData};
       } else {
         // Gérer les différents codes d'erreur
@@ -79,6 +81,12 @@ class BalanceService {
         return {'success': false, 'message': 'Utilisateur non authentifié', 'data': null};
       }
 
+      print('token: $token');
+      print("provider: $provider");
+      print("amount: $amount");
+      print("operationType: $operationType");
+      print("toReceive: $toReceive");
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/v1/fee/getFee'),
         headers: {
@@ -103,7 +111,6 @@ class BalanceService {
           final double totalAmount =
               responseData['amountWithFee'] != null ? double.parse(responseData['amountWithFee'].toString()) : 0.0;
           final double feeAmount = totalAmount - amount;
-
           return {
             'success': true,
             'message': responseData['message'] ?? 'Calcul des frais réussi',
@@ -171,6 +178,10 @@ class BalanceService {
           "currency": currency,
         }),
       );
+
+        print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         // Essayer de parser la réponse comme JSON

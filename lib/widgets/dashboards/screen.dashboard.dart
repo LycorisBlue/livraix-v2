@@ -78,6 +78,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _showWithdrawalSheet(double currentBalance) {
+    WithdrawalBottomSheet.show(
+      context,
+      currentBalance: currentBalance,
+      onSuccess: () {
+        // Recharger le solde après un retrait réussi
+        _loadBalanceData();
+
+        // Afficher une notification de succès (déjà géré dans le bottomsheet)
+      },
+    );
+  }
+
   String _getUserName() {
     if (_userDetails == null) {
       return "Transporteur";
@@ -121,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // Bannière de solde
                       _isLoadingBalance
                           ? _buildLoadingBalanceBanner()
-                          : (_balanceData != null ? _buildBalanceBanner() : _buildEmptyBalanceBanner()),
+                          : (_balanceData != null ? _buildBalanceBanner() : _buildBalanceBanner()), //modifier plus tards
 
                       // État vide pour les cartes statistiques
                       Row(
@@ -303,6 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Widget pour afficher la bannière de solde avec les données
+
   Widget _buildBalanceBanner() {
     // Récupérer le montant du solde
     final double montant = _balanceData?['montant'] != null ? double.parse(_balanceData!['montant'].toString()) : 0.0;
@@ -360,10 +374,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: GestureDetector(
                   onTap: () {
-                    // Ici vous pourriez ajouter une fonctionnalité pour retirer de l'argent
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fonctionnalité de retrait à venir')),
-                    );
+                    // Appeler la méthode pour afficher le bottomsheet de retrait
+                    _showWithdrawalSheet(montant);
                   },
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
